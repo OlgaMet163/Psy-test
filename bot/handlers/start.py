@@ -133,12 +133,20 @@ async def handle_show_hogan_results(message: Message) -> None:
 @start_router.message(Command("reset"))
 @start_router.message(Command("cancel"))
 async def handle_reset(message: Message, state) -> None:
+    storage = dependencies.storage_gateway
+    if storage:
+        try:
+            await storage.clear_user_data(message.from_user.id)
+        except Exception:
+            # даже если очистка не удалась, всё равно сбросим состояние
+            pass
     await state.clear()
     hexaco_ready = await _has_results(message.from_user.id, "HEXACO")
     hogan_ready = await _has_results(message.from_user.id, "HOGAN")
     svs_ready = await _has_results(message.from_user.id, "SVS")
+    await message.answer("История очищена.")
     await message.answer(
-        "State cleared. Pick any assessment:",
+        WELCOME_TEXT,
         reply_markup=main_menu_keyboard(hexaco_ready, hogan_ready, svs_ready),
     )
 

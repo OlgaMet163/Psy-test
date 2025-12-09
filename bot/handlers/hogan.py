@@ -9,7 +9,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
 from bot import dependencies
 from bot.keyboards import (
@@ -69,12 +69,24 @@ class HoganStates(StatesGroup):
 @hogan_router.message(Command("hogan"))
 @hogan_router.message(lambda m: m.text and m.text.lower() in HOGAN_TEXT_TRIGGERS)
 async def start_hogan(message: Message, state: FSMContext) -> None:
+    current_state = await state.get_state()
+    if current_state:
+        if str(current_state).startswith("HoganStates"):
+            await message.answer(
+                "Hogan уже идёт. Продолжайте отвечать через кнопки под вопросами."
+            )
+            return
+        await message.answer(
+            "Another assessment is already in progress. Finish it or send /reset."
+        )
+        return
     engine = _ensure_engine()
     order = _build_question_order(engine)
     await state.set_state(HoganStates.answering)
     await state.update_data(index=0, answers={}, order=order)
     await message.answer(
-        "Hogan DSUSI-SF: think about the last 2–3 months under pressure and answer from practice."
+        "Hogan DSUSI-SF: think about the last 2–3 months under pressure and answer from practice.",
+        reply_markup=ReplyKeyboardRemove(),
     )
     await _send_question(message, engine, order, 0)
 

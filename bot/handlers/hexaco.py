@@ -6,7 +6,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
 from bot import dependencies
 from bot.keyboards import build_hexaco_keyboard, get_hexaco_label, main_menu_keyboard
@@ -42,6 +42,19 @@ def _ensure_storage():
 @hexaco_router.message(Command("hexaco"))
 @hexaco_router.message(lambda m: m.text and m.text.lower() in HEXACO_TEXT_TRIGGERS)
 async def start_hexaco(message: Message, state: FSMContext) -> None:
+    current_state = await state.get_state()
+    if current_state:
+        # Если уже в HEXACO — не перезапускаем, а просим продолжить.
+        if str(current_state).startswith("HexacoStates"):
+            await message.answer(
+                "HEXACO уже идёт. Продолжайте отвечать через кнопки под вопросами."
+            )
+            return
+        # Если другой тест — блокируем.
+        await message.answer(
+            "Another assessment is already in progress. Finish it or send /reset."
+        )
+        return
     engine = _ensure_engine()
     await state.set_state(HexacoStates.answering)
     await state.update_data(index=0, answers={})
@@ -50,6 +63,7 @@ async def start_hexaco(message: Message, state: FSMContext) -> None:
             "HEXACO two-facet form: answer how often each statement is true for you, "
             "using the buttons below based on your typical behavior."
         ),
+        reply_markup=ReplyKeyboardRemove(),
     )
     await _send_question(message, engine, 0)
 

@@ -6,7 +6,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
 from bot import dependencies
 from bot.keyboards import build_svs_keyboard, get_svs_label, main_menu_keyboard
@@ -43,11 +43,23 @@ def _ensure_storage():
 @svs_router.message(Command("svs"))
 @svs_router.message(lambda m: m.text and m.text.lower() in SVS_TEXT_TRIGGERS)
 async def start_svs(message: Message, state: FSMContext) -> None:
+    current_state = await state.get_state()
+    if current_state:
+        if str(current_state).startswith("SvsStates"):
+            await message.answer(
+                "SVS уже идёт. Продолжайте отвечать через кнопки под вопросами."
+            )
+            return
+        await message.answer(
+            "Another assessment is already in progress. Finish it or send /reset."
+        )
+        return
     engine = _ensure_engine()
     await state.set_state(SvsStates.answering)
     await state.update_data(index=0, answers={})
     await message.answer(
-        "Schwartz Value Survey (20 items, 1–7 scale). Rate how true each statement is for you."
+        "Schwartz Value Survey (20 items, 1–7 scale). Rate how true each statement is for you.",
+        reply_markup=ReplyKeyboardRemove(),
     )
     await _send_question(message, engine, 0)
 

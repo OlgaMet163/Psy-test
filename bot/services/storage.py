@@ -247,6 +247,14 @@ class StorageGateway:
                 writer.writerow([row[column] for column in columns])
         return output_path
 
+    async def clear_user_data(self, user_id: int) -> None:
+        """Полностью удаляет ответы и результаты пользователя."""
+        await self.init()
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("DELETE FROM hexaco_answers WHERE user_id = ?", (user_id,))
+            await db.execute("DELETE FROM hexaco_results WHERE user_id = ?", (user_id,))
+            await db.commit()
+
     async def _fetch_latest_rows(
         self, user_id: int, test_name: str
     ) -> List[aiosqlite.Row]:
