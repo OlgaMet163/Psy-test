@@ -6,11 +6,12 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, FSInputFile
 
 from bot import dependencies
 from bot.keyboards import build_hexaco_keyboard, get_hexaco_label, main_menu_keyboard
 from bot.utils.text import build_progress_bar
+from bot.utils.plot import build_hexaco_radar
 
 hexaco_router = Router(name="hexaco")
 CALLBACK_PREFIX = "hexaco"
@@ -120,6 +121,11 @@ async def _finish(
     results = engine.calculate(answers)
     public_results = [result for result in results if result.visibility == "public"]
     message_text = format_results_message(public_results)
+    radar_path = None
+    try:
+        radar_path = build_hexaco_radar(public_results)
+    except Exception:
+        radar_path = None
 
     storage = _ensure_storage()
     hogan_has_results = False
@@ -129,10 +135,21 @@ async def _finish(
         hogan_has_results = await storage.has_results(callback.from_user.id, "HOGAN")
         svs_has_results = await storage.has_results(callback.from_user.id, "SVS")
 
+    if radar_path:
+        await callback.message.answer_photo(
+            FSInputFile(radar_path),
+            caption="<b>HEXACO radar</b>",
+        )
+
     await callback.message.answer(
         message_text,
         reply_markup=main_menu_keyboard(True, hogan_has_results, svs_has_results),
     )
+    if radar_path:
+        try:
+            radar_path.unlink(missing_ok=True)
+        except Exception:
+            pass
     await state.clear()
 
 

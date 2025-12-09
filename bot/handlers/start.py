@@ -13,7 +13,7 @@ from bot.handlers.hogan import (
 )
 from bot.keyboards import main_menu_keyboard
 from aiogram.types import FSInputFile
-from bot.utils.plot import build_hogan_radar
+from bot.utils.plot import build_hogan_radar, build_hexaco_radar
 
 start_router = Router(name="start")
 
@@ -74,10 +74,26 @@ async def handle_show_hexaco_results(message: Message) -> None:
             reply_markup=main_menu_keyboard(False, hogan_ready, svs_ready),
         )
         return
+    radar_path = None
+    try:
+        radar_path = build_hexaco_radar(public_results)
+    except Exception as exc:  # pragma: no cover
+        logging.exception("Failed to build HEXACO radar: %s", exc)
+        radar_path = None
+    if radar_path:
+        await message.answer_photo(
+            FSInputFile(radar_path),
+            caption="<b>HEXACO radar</b>",
+        )
     await message.answer(
         format_results_message(public_results),
         reply_markup=main_menu_keyboard(hexaco_ready, hogan_ready, svs_ready),
     )
+    if radar_path:
+        try:
+            radar_path.unlink(missing_ok=True)
+        except Exception:
+            pass
 
 
 @start_router.message(lambda m: m.text and m.text.lower() in HOGAN_RESULTS_COMMANDS)

@@ -1,7 +1,9 @@
 from pathlib import Path
 
 from bot.services.hogan import HoganScaleResult
+from bot.services.hexaco import HexacoResult
 from bot.utils.plot import build_hogan_radar
+from bot.utils.plot import build_hexaco_radar
 
 
 def test_build_hogan_radar_creates_file(tmp_path: Path):
@@ -22,6 +24,26 @@ def test_build_hogan_radar_creates_file(tmp_path: Path):
     path = build_hogan_radar(scales)
     assert path.exists()
     # Move to tmp to avoid clutter
+    target = tmp_path / path.name
+    path.replace(target)
+    assert target.exists()
+
+
+def test_build_hexaco_radar_creates_file(tmp_path: Path):
+    results = [
+        HexacoResult(
+            domain_id=f"id{i}",
+            title=f"Domain {i}",
+            percent=10 * i,
+            band_id="medium",
+            band_label="Medium",
+            interpretation="",
+            visibility="public",
+        )
+        for i in range(1, 7)
+    ]
+    path = build_hexaco_radar(results)
+    assert path.exists()
     target = tmp_path / path.name
     path.replace(target)
     assert target.exists()

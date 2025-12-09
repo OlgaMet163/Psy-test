@@ -178,25 +178,35 @@ def main_menu_keyboard(
     restart_emoji = "🔁"
     results_emoji = "📊"
     builder = ReplyKeyboardBuilder()
-    buttons: list[KeyboardButton] = []
-    if has_hexaco_results:
-        buttons.append(KeyboardButton(text=f"{results_emoji} HEXACO results"))
-        buttons.append(KeyboardButton(text=f"{restart_emoji} Restart HEXACO"))
-    else:
-        buttons.append(KeyboardButton(text=f"{start_emoji} Start HEXACO"))
-    if has_hogan_results:
-        buttons.append(KeyboardButton(text=f"{results_emoji} Hogan results"))
-        buttons.append(KeyboardButton(text=f"{restart_emoji} Restart Hogan"))
-    else:
-        buttons.append(KeyboardButton(text=f"{start_emoji} Start Hogan"))
-    if has_svs_results:
-        buttons.append(KeyboardButton(text=f"{results_emoji} SVS results"))
-        buttons.append(KeyboardButton(text=f"{restart_emoji} Restart SVS"))
-    else:
-        buttons.append(KeyboardButton(text=f"{start_emoji} Start SVS"))
 
-    builder.row(*buttons)
-    builder.adjust(2)
+    # Start buttons — одной строкой, упорядочены: HEXACO, Hogan, SVS.
+    start_buttons: list[KeyboardButton] = []
+    if not has_hexaco_results:
+        start_buttons.append(KeyboardButton(text=f"{start_emoji} Start HEXACO"))
+    if not has_hogan_results:
+        start_buttons.append(KeyboardButton(text=f"{start_emoji} Start Hogan"))
+    if not has_svs_results:
+        start_buttons.append(KeyboardButton(text=f"{start_emoji} Start SVS"))
+    if start_buttons:
+        builder.row(*start_buttons)
+
+    # Results / Restart pairs per test
+    if has_hexaco_results:
+        builder.row(
+            KeyboardButton(text=f"{results_emoji} HEXACO results"),
+            KeyboardButton(text=f"{restart_emoji} Restart HEXACO"),
+        )
+    if has_hogan_results:
+        builder.row(
+            KeyboardButton(text=f"{results_emoji} Hogan results"),
+            KeyboardButton(text=f"{restart_emoji} Restart Hogan"),
+        )
+    if has_svs_results:
+        builder.row(
+            KeyboardButton(text=f"{results_emoji} SVS results"),
+            KeyboardButton(text=f"{restart_emoji} Restart SVS"),
+        )
+
     return builder.as_markup(
         resize_keyboard=True, input_field_placeholder="Select action"
     )
