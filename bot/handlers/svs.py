@@ -21,6 +21,8 @@ SVS_TEXT_TRIGGERS = {
     "start svs",
     "restart svs",
     "svs",
+    "🚀 start svs",
+    "🔁 restart svs",
 }
 
 

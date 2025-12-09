@@ -174,23 +174,32 @@ def hogan_insights_keyboard(trait_ids: Sequence[str]) -> InlineKeyboardMarkup:
 def main_menu_keyboard(
     has_hexaco_results: bool, has_hogan_results: bool, has_svs_results: bool = False
 ) -> ReplyKeyboardMarkup:
+    start_emoji = "🚀"
+    restart_emoji = "🔁"
+    results_emoji = "📊"
     builder = ReplyKeyboardBuilder()
+    buttons: list[KeyboardButton] = []
     if has_hexaco_results:
-        builder.row(KeyboardButton(text="HEXACO results"))
-        builder.row(KeyboardButton(text="Restart HEXACO"))
+        buttons.append(KeyboardButton(text=f"{results_emoji} HEXACO results"))
+        buttons.append(KeyboardButton(text=f"{restart_emoji} Restart HEXACO"))
     else:
-        builder.row(KeyboardButton(text="Start HEXACO"))
+        buttons.append(KeyboardButton(text=f"{start_emoji} Start HEXACO"))
     if has_hogan_results:
-        builder.row(KeyboardButton(text="Hogan results"))
-        builder.row(KeyboardButton(text="Restart Hogan"))
+        buttons.append(KeyboardButton(text=f"{results_emoji} Hogan results"))
+        buttons.append(KeyboardButton(text=f"{restart_emoji} Restart Hogan"))
     else:
-        builder.row(KeyboardButton(text="Start Hogan"))
+        buttons.append(KeyboardButton(text=f"{start_emoji} Start Hogan"))
     if has_svs_results:
-        builder.row(KeyboardButton(text="SVS results"))
-        builder.row(KeyboardButton(text="Restart SVS"))
+        buttons.append(KeyboardButton(text=f"{results_emoji} SVS results"))
+        buttons.append(KeyboardButton(text=f"{restart_emoji} Restart SVS"))
     else:
-        builder.row(KeyboardButton(text="Start SVS"))
-    return builder.as_markup(resize_keyboard=True)
+        buttons.append(KeyboardButton(text=f"{start_emoji} Start SVS"))
+
+    builder.row(*buttons)
+    builder.adjust(2)
+    return builder.as_markup(
+        resize_keyboard=True, input_field_placeholder="Select action"
+    )
 
 
 def _build_answer_keyboard(

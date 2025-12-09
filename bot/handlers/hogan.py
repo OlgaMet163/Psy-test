@@ -24,7 +24,10 @@ from bot.services.hogan import (
     SCALE_DEFINITIONS,
     IM_ITEMS,
 )
+from aiogram.types import FSInputFile
 from bot.utils.text import build_progress_bar
+from bot.utils.plot import build_hogan_radar
+from bot.utils.plot import build_hogan_radar
 
 hogan_router = Router(name="hogan")
 CALLBACK_PREFIX = "hogan"
@@ -36,6 +39,8 @@ HOGAN_TEXT_TRIGGERS = {
     "start hogan",
     "restart hogan",
     "hogan",
+    "🚀 start hogan",
+    "🔁 restart hogan",
 }
 ATLAS_DOMAIN_TITLES = {
     "business": "Hogan business",
@@ -192,6 +197,14 @@ async def _finish(
     report = engine.calculate(answers)
     keyboard = build_hogan_results_keyboard(report.scales)
     chunks = build_hogan_results_chunks(report)
+    radar_path = None
+    try:
+        radar_path = build_hogan_radar(report.scales)
+    except Exception as exc:  # pragma: no cover - diagnostics
+        import logging
+
+        logging.exception("Failed to build Hogan radar: %s", exc)
+        radar_path = None
 
     storage = _ensure_storage()
     hexaco_has_results = False
@@ -205,6 +218,11 @@ async def _finish(
 
     if not chunks:
         chunks = ["No Hogan results yet."]
+    if radar_path:
+        await callback.message.answer_photo(
+            FSInputFile(radar_path),
+            caption="<b>Hogan DSUSI-SF radar</b>",
+        )
     for chunk in chunks:
         await callback.message.answer(chunk)
     if keyboard:
@@ -216,6 +234,11 @@ async def _finish(
         "Back to the menu or pick another test whenever you want.",
         reply_markup=main_menu_keyboard(hexaco_has_results, True, svs_has_results),
     )
+    if radar_path:
+        try:
+            radar_path.unlink(missing_ok=True)
+        except Exception:
+            pass
     await state.clear()
 
 

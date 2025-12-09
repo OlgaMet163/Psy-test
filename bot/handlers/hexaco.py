@@ -20,6 +20,8 @@ HEXACO_TEXT_TRIGGERS = {
     "start hexaco",
     "restart hexaco",
     "hexaco",
+    "🚀 start hexaco",
+    "🔁 restart hexaco",
 }
 
 

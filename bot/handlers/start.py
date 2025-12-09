@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
@@ -10,6 +12,8 @@ from bot.handlers.hogan import (
     build_hogan_results_keyboard,
 )
 from bot.keyboards import main_menu_keyboard
+from aiogram.types import FSInputFile
+from bot.utils.plot import build_hogan_radar
 
 start_router = Router(name="start")
 
@@ -23,9 +27,21 @@ WELCOME_TEXT = (
     "them again via the menu buttons."
 )
 
-HEXACO_RESULTS_COMMANDS = {"результаты hexaco", "hexaco results"}
-HOGAN_RESULTS_COMMANDS = {"результаты hogan", "hogan results"}
-SVS_RESULTS_COMMANDS = {"результаты svs", "svs results"}
+HEXACO_RESULTS_COMMANDS = {
+    "результаты hexaco",
+    "hexaco results",
+    "📊 hexaco results",
+}
+HOGAN_RESULTS_COMMANDS = {
+    "результаты hogan",
+    "hogan results",
+    "📊 hogan results",
+}
+SVS_RESULTS_COMMANDS = {
+    "результаты svs",
+    "svs results",
+    "📊 svs results",
+}
 RESET_COMMANDS = {"/reset", "/cancel", "reset", "cancel", "сброс"}
 
 
@@ -85,8 +101,19 @@ async def handle_show_hogan_results(message: Message) -> None:
 
     keyboard = build_hogan_results_keyboard(report.scales)
     chunks = build_hogan_results_chunks(report)
+    radar_path = None
+    try:
+        radar_path = build_hogan_radar(report.scales)
+    except Exception as exc:  # pragma: no cover - diagnostics
+        logging.exception("Failed to build Hogan radar: %s", exc)
+        radar_path = None
     if not chunks:
         chunks = ["No Hogan results yet."]
+    if radar_path:
+        await message.answer_photo(
+            FSInputFile(radar_path),
+            caption="<b>Hogan DSUSI-SF radar</b>",
+        )
     for chunk in chunks:
         await message.answer(chunk)
     if keyboard:
@@ -95,6 +122,11 @@ async def handle_show_hogan_results(message: Message) -> None:
         "Back to menu anytime.",
         reply_markup=main_menu_keyboard(hexaco_ready, hogan_ready, svs_ready),
     )
+    if radar_path:
+        try:
+            radar_path.unlink(missing_ok=True)
+        except Exception:
+            pass
 
 
 @start_router.message(lambda m: m.text and m.text.lower() in RESET_COMMANDS)
