@@ -16,15 +16,16 @@
 
 ## Приветственное сообщение (фактический текст в боте)
 ```
-Hi 👋
+Welcome 🔮
 
-This bot currently contains three assessments:
-• HEXACO two-facet (24 items, 1–5 scale, live scoring)
-• Schwartz Value Survey (20 items, 1–7 scale, core values + 4 higher-order themes)
-• Hogan DSUSI-SF (11 stress derailers + Hogan coaching / career snippets)
+This bot includes three assessments:
+• HEXACO
+• Schwartz Value Survey
+• Hogan DSUSI-SF
 
-Answer based on real behavior. You can pause any time—results stay saved and you can request them again via the menu buttons.
+All three take about 15–20 minutes total. Answer based on your actual behavior over the last 2–3 months. You’ll get a detailed comment about you and scale visualizations. You can pause any time—results stay saved and you can request them again via the menu buttons.
 ```
+Отправляется как caption к GIF `bot/assets/welcome.gif`, при отсутствии файла уходит текстом.
 
 ## Пользовательский путь
 1) `/start` → меню с тестами.  

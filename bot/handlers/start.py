@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from aiogram import Router
 from aiogram.filters import Command, CommandStart
@@ -25,14 +26,17 @@ from bot.utils.plot import (
 start_router = Router(name="start")
 
 WELCOME_TEXT = (
-    "Hi 👋\n\n"
-    "This bot currently contains three assessments:\n"
-    "• HEXACO two-facet (24 items, 1–5 scale, live scoring)\n"
-    "• Schwartz Value Survey (20 items, 1–7 scale, core values + 4 higher-order themes)\n"
-    "• Hogan DSUSI-SF (11 stress derailers + Hogan coaching / career snippets)\n\n"
-    "Answer based on real behavior. You can pause any time—results stay saved and you can request "
-    "them again via the menu buttons."
+    "Welcome 🔮\n\n"
+    "This bot includes three assessments:\n"
+    "• HEXACO\n"
+    "• Schwartz Value Survey\n"
+    "• Hogan DSUSI-SF\n\n"
+    "All three take about 15–20 minutes total. Answer based on your actual behavior over the last "
+    "2–3 months. You’ll get a detailed comment about you and scale visualizations. You can pause "
+    "any time—results stay saved and you can request them again via the menu buttons."
 )
+
+WELCOME_GIF_PATH = Path(__file__).resolve().parent.parent / "assets" / "welcome.gif"
 
 HEXACO_RESULTS_COMMANDS = {
     "результаты hexaco",
@@ -67,10 +71,7 @@ async def handle_start(message: Message) -> None:
     hexaco_ready = await _has_results(message.from_user.id, "HEXACO")
     hogan_ready = await _has_results(message.from_user.id, "HOGAN")
     svs_ready = await _has_results(message.from_user.id, "SVS")
-    await message.answer(
-        WELCOME_TEXT,
-        reply_markup=main_menu_keyboard(hexaco_ready, hogan_ready, svs_ready),
-    )
+    await _send_welcome(message, hexaco_ready, hogan_ready, svs_ready)
 
 
 @start_router.message(lambda m: m.text and m.text.lower() in HEXACO_RESULTS_COMMANDS)
@@ -188,10 +189,7 @@ async def handle_reset(message: Message, state) -> None:
     hogan_ready = await _has_results(message.from_user.id, "HOGAN")
     svs_ready = await _has_results(message.from_user.id, "SVS")
     await message.answer("History cleared.")
-    await message.answer(
-        WELCOME_TEXT,
-        reply_markup=main_menu_keyboard(hexaco_ready, hogan_ready, svs_ready),
-    )
+    await _send_welcome(message, hexaco_ready, hogan_ready, svs_ready)
 
 
 @start_router.message(lambda m: m.text and m.text.lower() in SVS_RESULTS_COMMANDS)
@@ -272,3 +270,17 @@ def _order_svs_for_radar(results: list[SvsResult]) -> list[SvsResult]:
         values, key=lambda item: order_index.get(item.domain_id, len(SVS_VALUE_ORDER))
     )
     return ordered_values + others
+
+
+async def _send_welcome(
+    message: Message, hexaco_ready: bool, hogan_ready: bool, svs_ready: bool
+) -> None:
+    keyboard = main_menu_keyboard(hexaco_ready, hogan_ready, svs_ready)
+    if WELCOME_GIF_PATH.exists():
+        await message.answer_animation(
+            animation=FSInputFile(WELCOME_GIF_PATH),
+            caption=WELCOME_TEXT,
+            reply_markup=keyboard,
+        )
+    else:
+        await message.answer(WELCOME_TEXT, reply_markup=keyboard)
