@@ -336,14 +336,14 @@ class HoganEngine:
     def _validate_answers(self, answers: Dict[int, int]) -> None:
         missing = {statement.id for statement in self.statements} - set(answers.keys())
         if missing:
-            raise ValueError(f"Не хватает ответов для вопросов: {sorted(missing)}")
+            raise ValueError(f"Missing answers for questions: {sorted(missing)}")
         invalid = [
             (statement_id, value)
             for statement_id, value in answers.items()
             if value not in self.answer_range
         ]
         if invalid:
-            raise ValueError(f"Некорректные значения ответов: {invalid}")
+            raise ValueError(f"Invalid answer values: {invalid}")
 
     def _transform_value(self, value: int, statement_id: int) -> int:
         statement = self._statements_map[statement_id]
@@ -358,7 +358,7 @@ class HoganEngine:
         for level_id, min_value, max_value, label in HOGAN_LEVELS:
             if min_value <= mean_score <= max_value:
                 return level_id, label
-        return "unknown", "Неизвестно"
+        return "unknown", "Unknown"
 
     @staticmethod
     def _build_interpretation(

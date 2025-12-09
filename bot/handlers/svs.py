@@ -16,6 +16,7 @@ from bot.utils.plot import build_svs_radar
 
 svs_router = Router(name="svs")
 CALLBACK_PREFIX = "svs"
+SVS_VALUE_ORDER = ("SD", "ST", "HE", "AC", "PO", "SEC", "CO", "TR", "BE", "UN")
 SVS_TEXT_TRIGGERS = {
     "начать svs",
     "перепройти svs",
@@ -33,7 +34,7 @@ class SvsStates(StatesGroup):
 
 def _ensure_engine():
     if dependencies.svs_engine is None:
-        raise RuntimeError("SvsEngine не инициализирован.")
+        raise RuntimeError("SvsEngine is not initialized.")
     return dependencies.svs_engine
 
 
@@ -48,7 +49,7 @@ async def start_svs(message: Message, state: FSMContext) -> None:
     if current_state:
         if str(current_state).startswith("SvsStates"):
             await message.answer(
-                "SVS уже идёт. Продолжайте отвечать через кнопки под вопросами."
+                "SVS is already in progress. Continue answering with the buttons below."
             )
             return
         await message.answer(
@@ -119,11 +120,13 @@ async def _finish(
     callback: CallbackQuery, state: FSMContext, answers: Dict[int, int], engine
 ) -> None:
     results = engine.calculate(answers)
-    value_results, group_results = _split_results(results)
+    ordered_results = sorted(results, key=lambda item: item.percent, reverse=True)
+    radar_results = _order_svs_for_radar(results)
+    value_results, group_results = _split_results(ordered_results)
     message_text = format_results_message(value_results, group_results)
     radar_path = None
     try:
-        radar_path = build_svs_radar(results)
+        radar_path = build_svs_radar(radar_results)
     except Exception:
         radar_path = None
 
@@ -161,6 +164,16 @@ def _split_results(
     return values, groups
 
 
+def _order_svs_for_radar(results: Sequence[SvsResult]) -> List[SvsResult]:
+    order_index = {value_id: idx for idx, value_id in enumerate(SVS_VALUE_ORDER)}
+    values = [item for item in results if item.category == "value"]
+    others = [item for item in results if item.category != "value"]
+    ordered_values = sorted(
+        values, key=lambda item: order_index.get(item.domain_id, len(SVS_VALUE_ORDER))
+    )
+    return ordered_values + others
+
+
 def format_results_message(
     values: Sequence[SvsResult], groups: Sequence[SvsResult]
 ) -> str:
@@ -170,20 +183,21 @@ def format_results_message(
     lines: List[str] = ["Schwartz Value Survey (SVS):"]
     if groups:
         lines.append("\nHigher-order themes:")
-        for result in groups:
+        ordered_groups = sorted(groups, key=lambda item: item.percent, reverse=True)
+        for result in ordered_groups:
             bar = build_progress_bar(result.percent, result.band_id)
             lines.append(
-                f"• <b>{result.title}</b>: {result.mean_score}/7 ({result.percent}% — {result.band_label})\n"
+                f"• <b>{result.title}</b>: {result.percent}% ({result.band_label})\n"
                 f"{bar}\n"
                 f"{result.interpretation}"
             )
     if values:
         lines.append("\nCore values:")
-        for result in values:
+        ordered_values = sorted(values, key=lambda item: item.percent, reverse=True)
+        for result in ordered_values:
             bar = build_progress_bar(result.percent, result.band_id)
             lines.append(
-                f"• <b>{result.title} ({result.domain_id})</b>: {result.mean_score}/7 "
-                f"({result.percent}% — {result.band_label})\n"
+                f"• <b>{result.title} ({result.domain_id})</b>: {result.percent}% ({result.band_label})\n"
                 f"{bar}\n"
                 f"{result.interpretation}"
             )

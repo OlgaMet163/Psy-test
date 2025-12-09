@@ -33,6 +33,7 @@ hogan_router = Router(name="hogan")
 CALLBACK_PREFIX = "hogan"
 INSIGHTS_SEPARATOR = ","
 _HOGAN_TITLE_BY_ID = {scale.id: scale.title for scale in SCALE_DEFINITIONS}
+_HOGAN_ORDER = [scale.id for scale in SCALE_DEFINITIONS]
 HOGAN_TEXT_TRIGGERS = {
     "начать hogan",
     "перепройти hogan",
@@ -73,7 +74,7 @@ async def start_hogan(message: Message, state: FSMContext) -> None:
     if current_state:
         if str(current_state).startswith("HoganStates"):
             await message.answer(
-                "Hogan уже идёт. Продолжайте отвечать через кнопки под вопросами."
+                "Hogan is already in progress. Continue answering with the buttons below."
             )
             return
         await message.answer(
@@ -158,7 +159,7 @@ async def handle_atlas_domain(callback: CallbackQuery) -> None:
         return
     text = await _get_atlas_domain_message(callback.from_user.id, domain)
     if not text:
-        await callback.answer("Нет подходящих комбинаций черт", show_alert=True)
+        await callback.answer("No matching trait combinations found.", show_alert=True)
         return
     await _send_text_chunks(callback.message, _split_text(text))
     await callback.answer()
@@ -166,19 +167,23 @@ async def handle_atlas_domain(callback: CallbackQuery) -> None:
 
 def build_hogan_results_chunks(report: HoganReport, limit: int = 3500) -> List[str]:
     blocks: List[str] = ["Hogan DSUSI-SF results:"]
-    im_flag = report.impression_management >= 4.2
-    im_line = f"Impression Management: {report.impression_management}/5"
+    im_percent = _mean_to_percent(report.impression_management)
+    im_threshold_mean = 4.2
+    im_threshold_percent = _mean_to_percent(im_threshold_mean)
+    im_flag = report.impression_management >= im_threshold_mean
+    im_line = f"Impression Management: {im_percent}%"
     if im_flag:
         im_line += " ⚠️"
     blocks.append(im_line)
     if im_flag:
         blocks.append(
-            "IM ≥ 4.2 suggests impression management; treat very low derailer scores cautiously."
+            f"IM ≥ {im_threshold_percent}% suggests impression management; treat very low derailer scores cautiously."
         )
-    for scale in report.scales:
+    ordered_scales = sorted(report.scales, key=lambda item: item.percent, reverse=True)
+    for scale in ordered_scales:
         bar = build_progress_bar(scale.percent, scale.level_id)
         blocks.append(
-            f"• <b>{scale.title}</b> ({scale.hds_label}) — {scale.mean_score}/5 ({scale.level_label})\n"
+            f"• <b>{scale.title}</b> ({scale.hds_label}) — {scale.percent}% ({scale.level_label})\n"
             f"{bar}\n"
             f"{scale.interpretation}"
         )
@@ -207,11 +212,16 @@ async def _finish(
     callback: CallbackQuery, state: FSMContext, answers: Dict[int, int], engine
 ) -> None:
     report = engine.calculate(answers)
-    keyboard = build_hogan_results_keyboard(report.scales)
-    chunks = build_hogan_results_chunks(report)
+    ordered_scales = sorted(report.scales, key=lambda item: item.percent, reverse=True)
+    radar_scales = _order_hogan_for_radar(report.scales)
+    ordered_report = HoganReport(
+        scales=ordered_scales, impression_management=report.impression_management
+    )
+    keyboard = build_hogan_results_keyboard(ordered_scales)
+    chunks = build_hogan_results_chunks(ordered_report)
     radar_path = None
     try:
-        radar_path = build_hogan_radar(report.scales)
+        radar_path = build_hogan_radar(radar_scales)
     except Exception as exc:  # pragma: no cover - diagnostics
         import logging
 
@@ -222,7 +232,7 @@ async def _finish(
     hexaco_has_results = False
     svs_has_results = False
     if storage:
-        payload = [*report.scales]
+        payload = [*ordered_report.scales]
         payload.append(_build_im_result(report))
         await storage.save_results(callback.from_user.id, "HOGAN", payload)
         hexaco_has_results = await storage.has_results(callback.from_user.id, "HEXACO")
@@ -308,7 +318,7 @@ def _build_individual_insights(
 
 def _ensure_engine():
     if dependencies.hogan_engine is None:
-        raise RuntimeError("HoganEngine не инициализирован.")
+        raise RuntimeError("HoganEngine is not initialized.")
     return dependencies.hogan_engine
 
 
@@ -318,7 +328,7 @@ def _ensure_storage():
 
 def _ensure_insights():
     if dependencies.hogan_insights is None:
-        raise RuntimeError("HoganInsights не инициализирован.")
+        raise RuntimeError("HoganInsights is not initialized.")
     return dependencies.hogan_insights
 
 
@@ -475,6 +485,7 @@ def _select_top_traits(scales: Sequence[HoganScaleResult]) -> List[str]:
 
 def _build_im_result(report: HoganReport) -> HoganScaleResult:
     percent = _mean_to_percent(report.impression_management)
+    im_threshold_percent = _mean_to_percent(4.2)
     return HoganScaleResult(
         scale_id="IM",
         title="Impression Management",
@@ -483,8 +494,20 @@ def _build_im_result(report: HoganReport) -> HoganScaleResult:
         percent=percent,
         level_id="im",
         level_label="Impression Management",
-        interpretation="Honesty check for the protocol (≥4.2 may indicate impression management).",
+        interpretation=(
+            f"Honesty check for the protocol (≥{im_threshold_percent}% may indicate impression management)."
+        ),
         visibility="internal",
+    )
+
+
+def _order_hogan_for_radar(
+    scales: Sequence[HoganScaleResult],
+) -> List[HoganScaleResult]:
+    order_index = {scale_id: idx for idx, scale_id in enumerate(_HOGAN_ORDER)}
+    return sorted(
+        [scale for scale in scales if scale.scale_id != "IM"],
+        key=lambda item: order_index.get(item.scale_id, len(_HOGAN_ORDER)),
     )
 
 

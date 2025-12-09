@@ -15,6 +15,14 @@ from bot.utils.plot import build_hexaco_radar
 
 hexaco_router = Router(name="hexaco")
 CALLBACK_PREFIX = "hexaco"
+HEXACO_ORDER = (
+    "honesty_humility",
+    "neurotism",
+    "extraversion",
+    "agreeableness",
+    "conscientiousness",
+    "openness",
+)
 HEXACO_TEXT_TRIGGERS = {
     "начать hexaco",
     "перепройти hexaco",
@@ -32,7 +40,7 @@ class HexacoStates(StatesGroup):
 
 def _ensure_engine():
     if dependencies.hexaco_engine is None:
-        raise RuntimeError("HexacoEngine не инициализирован.")
+        raise RuntimeError("HexacoEngine is not initialized.")
     return dependencies.hexaco_engine
 
 
@@ -48,7 +56,7 @@ async def start_hexaco(message: Message, state: FSMContext) -> None:
         # Если уже в HEXACO — не перезапускаем, а просим продолжить.
         if str(current_state).startswith("HexacoStates"):
             await message.answer(
-                "HEXACO уже идёт. Продолжайте отвечать через кнопки под вопросами."
+                "HEXACO is already in progress. Continue answering with the buttons below."
             )
             return
         # Если другой тест — блокируем.
@@ -119,11 +127,16 @@ async def _finish(
     callback: CallbackQuery, state: FSMContext, answers: Dict[int, int], engine
 ) -> None:
     results = engine.calculate(answers)
-    public_results = [result for result in results if result.visibility == "public"]
+    public_results = sorted(
+        [result for result in results if result.visibility == "public"],
+        key=lambda item: item.percent,
+        reverse=True,
+    )
+    radar_results = _order_hexaco_for_radar(public_results)
     message_text = format_results_message(public_results)
     radar_path = None
     try:
-        radar_path = build_hexaco_radar(public_results)
+        radar_path = build_hexaco_radar(radar_results)
     except Exception:
         radar_path = None
 
@@ -156,8 +169,9 @@ async def _finish(
 def format_results_message(results: List["HexacoResult"]) -> str:
     if not results:
         return "No HEXACO results yet."
+    ordered = sorted(results, key=lambda item: item.percent, reverse=True)
     text_lines = ["HEXACO results:"]
-    for result in results:
+    for result in ordered:
         bar = build_progress_bar(result.percent, result.band_id)
         text_lines.append(
             f"• <b>{result.title}</b>: {result.percent}% ({result.band_label})\n"
@@ -165,3 +179,10 @@ def format_results_message(results: List["HexacoResult"]) -> str:
             f"{result.interpretation}"
         )
     return "\n\n".join(text_lines)
+
+
+def _order_hexaco_for_radar(results: List["HexacoResult"]) -> List["HexacoResult"]:
+    order_index = {domain_id: idx for idx, domain_id in enumerate(HEXACO_ORDER)}
+    return sorted(
+        results, key=lambda item: order_index.get(item.domain_id, len(HEXACO_ORDER))
+    )

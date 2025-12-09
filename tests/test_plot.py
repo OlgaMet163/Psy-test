@@ -3,7 +3,11 @@ from pathlib import Path
 from bot.services.hogan import HoganScaleResult
 from bot.services.hexaco import HexacoResult
 from bot.services.svs import SvsResult
-from bot.utils.plot import build_hogan_radar, build_hexaco_radar, build_svs_radar
+from bot.utils.plot import (
+    build_hogan_radar,
+    build_hexaco_radar,
+    build_svs_radar,
+)
 
 
 def test_build_hogan_radar_creates_file(tmp_path: Path):

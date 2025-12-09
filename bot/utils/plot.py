@@ -23,7 +23,7 @@ def build_hogan_radar(scales: Sequence[HoganScaleResult]) -> Path:
     # Берём только шкалы с видимостью public/internal (все), исключая IM.
     filtered = [s for s in scales if s.scale_id != "IM"]
     labels = [scale.title for scale in filtered]
-    values = [scale.mean_score for scale in filtered]
+    values = [max(0.0, min(100.0, scale.percent)) for scale in filtered]
 
     # Углы для N шкал и закрытый контур.
     angles = [n / float(len(labels)) * 2 * math.pi for n in range(len(labels))]
@@ -54,10 +54,11 @@ def build_hogan_radar(scales: Sequence[HoganScaleResult]) -> Path:
     ax.set_theta_offset(math.pi / 2)
     ax.set_theta_direction(-1)
 
-    # Границы шкалы 1–5.
-    ax.set_ylim(0, 5)
-    ax.set_yticks([1, 2, 3, 4, 5])
-    ax.set_yticklabels(["1", "2", "3", "4", "5"], color="white")
+    # Границы шкалы 0–100%.
+    ax.set_ylim(0, 100)
+    yticks = [0, 20, 40, 60, 80, 100]
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([f"{value}%" for value in yticks], color="white")
 
     # Гриды светлые.
     ax.grid(True, linestyle="--", linewidth=0.6, alpha=0.5, color="white")
@@ -120,8 +121,7 @@ def build_hexaco_radar(results: Sequence[HexacoResult]) -> Path:
         raise ValueError("Нет публичных результатов HEXACO.")
 
     labels = [res.title for res in filtered]
-    # Переводим percent (0..100) в шкалу 0..5 для визуальной консистентности.
-    values = [max(0.0, min(5.0, res.percent / 20.0)) for res in filtered]
+    values = [max(0.0, min(100.0, res.percent)) for res in filtered]
 
     angles = [n / float(len(labels)) * 2 * math.pi for n in range(len(labels))]
     angles_closed = angles + angles[:1]
@@ -144,9 +144,10 @@ def build_hexaco_radar(results: Sequence[HexacoResult]) -> Path:
     ax.set_theta_offset(math.pi / 2)
     ax.set_theta_direction(-1)
 
-    ax.set_ylim(0, 5)
-    ax.set_yticks([1, 2, 3, 4, 5])
-    ax.set_yticklabels(["1", "2", "3", "4", "5"], color="white")
+    ax.set_ylim(0, 100)
+    yticks = [0, 20, 40, 60, 80, 100]
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([f"{value}%" for value in yticks], color="white")
 
     ax.grid(True, linestyle="--", linewidth=0.6, alpha=0.5, color="white")
     ax.spines["polar"].set_color("white")
@@ -204,7 +205,7 @@ def build_svs_radar(results: Sequence[SvsResult]) -> Path:
         raise ValueError("Нет публичных результатов SVS.")
 
     labels = [res.title for res in values]
-    scores = [max(0.0, min(5.0, res.percent / 20.0)) for res in values]
+    scores = [max(0.0, min(100.0, res.percent)) for res in values]
 
     angles = [n / float(len(labels)) * 2 * math.pi for n in range(len(labels))]
     angles_closed = angles + angles[:1]
@@ -231,9 +232,10 @@ def build_svs_radar(results: Sequence[SvsResult]) -> Path:
     ax.set_theta_offset(math.pi / 2)
     ax.set_theta_direction(-1)
 
-    ax.set_ylim(0, 5)
-    ax.set_yticks([1, 2, 3, 4, 5])
-    ax.set_yticklabels(["1", 2, 3, 4, 5], color="white")
+    ax.set_ylim(0, 100)
+    yticks = [0, 20, 40, 60, 80, 100]
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([f"{value}%" for value in yticks], color="white")
 
     ax.grid(True, linestyle="--", linewidth=0.6, alpha=0.5, color="white")
     ax.spines["polar"].set_color("white")

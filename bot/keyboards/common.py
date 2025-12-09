@@ -85,11 +85,11 @@ HEXACO_CUSTOM_OPTIONS: Dict[int, Sequence[tuple[int, str]]] = {
 }
 
 HOGAN_OPTIONS = [
-    (5, "Точно про меня"),
-    (4, "Скорее про меня"),
-    (3, "Немного про меня"),
-    (2, "Скорее не про меня"),
-    (1, "Точно не про меня"),
+    (5, "Very often"),
+    (4, "Often"),
+    (3, "Sometimes"),
+    (2, "Rarely"),
+    (1, "Never"),
 ]
 
 HOGAN_LABELS = {value: label for value, label in HOGAN_OPTIONS}

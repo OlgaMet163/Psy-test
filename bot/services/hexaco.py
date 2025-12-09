@@ -146,11 +146,11 @@ STATEMENTS: List[Statement] = [
 ]
 
 BANDS: Sequence[Band] = [
-    Band("very_low", "Очень низкий", 0, 13, min_inclusive=True),
-    Band("low", "Низкий", 13, 31),
-    Band("medium", "Средний", 31, 68),
-    Band("high", "Высокий", 68, 87),
-    Band("very_high", "Очень высокий", 87, 100),
+    Band("very_low", "Very low", 0, 13, min_inclusive=True),
+    Band("low", "Low", 13, 31),
+    Band("medium", "Medium", 31, 68),
+    Band("high", "High", 68, 87),
+    Band("very_high", "Very high", 87, 100),
 ]
 
 
@@ -158,9 +158,7 @@ def _interp(public: bool, levels: List[str]) -> Dict[str, str]:
     """Helper to zip band ids with texts."""
     band_ids = [band.id for band in BANDS]
     if len(levels) != len(band_ids):
-        raise ValueError(
-            "Количество интерпретаций не совпадает с количеством диапазонов."
-        )
+        raise ValueError("Interpretations count does not match band count.")
     return dict(zip(band_ids, levels, strict=True))
 
 
@@ -332,14 +330,14 @@ class HexacoEngine:
     def _validate_answers(self, answers: Dict[int, int]) -> None:
         missing = {item.id for item in self.statements} - set(answers.keys())
         if missing:
-            raise ValueError(f"Не хватает ответов для вопросов: {sorted(missing)}")
+            raise ValueError(f"Missing answers for questions: {sorted(missing)}")
         invalid = [
             (statement_id, value)
             for statement_id, value in answers.items()
             if value not in self.answer_range
         ]
         if invalid:
-            raise ValueError(f"Некорректные значения ответов: {invalid}")
+            raise ValueError(f"Invalid answer values: {invalid}")
 
     def _calculate_percent(
         self, domain: DomainDefinition, answers: Dict[int, int]
@@ -361,4 +359,4 @@ class HexacoEngine:
         for band in BANDS:
             if band.contains(percent):
                 return band
-        return Band("unknown", "Неизвестно", 0, 100, True, True)
+        return Band("unknown", "Unknown", 0, 100, True, True)

@@ -386,14 +386,14 @@ class SvsEngine:
     def _validate_answers(self, answers: Dict[int, int]) -> None:
         missing = {item.id for item in self.statements} - set(answers.keys())
         if missing:
-            raise ValueError(f"Не хватает ответов для вопросов: {sorted(missing)}")
+            raise ValueError(f"Missing answers for questions: {sorted(missing)}")
         invalid = [
             (statement_id, value)
             for statement_id, value in answers.items()
             if value not in self.answer_range
         ]
         if invalid:
-            raise ValueError(f"Некорректные значения ответов: {invalid}")
+            raise ValueError(f"Invalid answer values: {invalid}")
 
     def _calculate_value(
         self, definition: ValueDefinition, answers: Dict[int, int]
