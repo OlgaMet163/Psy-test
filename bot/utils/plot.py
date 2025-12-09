@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 from bot.services.hogan import HoganScaleResult
 from bot.services.hexaco import HexacoResult
+from bot.services.svs import SvsResult
 
 
 def build_hogan_radar(scales: Sequence[HoganScaleResult]) -> Path:
@@ -176,6 +177,93 @@ def build_hexaco_radar(results: Sequence[HexacoResult]) -> Path:
 
     ax.set_title(
         "HEXACO traits",
+        color="white",
+        fontsize=16,
+        fontweight="bold",
+        pad=20,
+    )
+
+    fig.tight_layout()
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+    tmp_path = Path(tmp.name)
+    tmp.close()
+    fig.savefig(tmp_path, dpi=150)
+    plt.close(fig)
+    return tmp_path
+
+
+def build_svs_radar(results: Sequence[SvsResult]) -> Path:
+    """Строит радар-диаграмму по ценностям SVS, возвращает путь к PNG."""
+    if not results:
+        raise ValueError("Нет результатов SVS для построения диаграммы.")
+
+    values = [r for r in results if r.category == "value" and r.visibility == "public"]
+    if not values:
+        values = [r for r in results if r.visibility == "public"]
+    if not values:
+        raise ValueError("Нет публичных результатов SVS.")
+
+    labels = [res.title for res in values]
+    scores = [max(0.0, min(5.0, res.percent / 20.0)) for res in values]
+
+    angles = [n / float(len(labels)) * 2 * math.pi for n in range(len(labels))]
+    angles_closed = angles + angles[:1]
+    scores_closed = scores + scores[:1]
+
+    face_color = "#1f2647"
+    polygon_color = "#b14ba7"  # новый цвет, отличный от Hogan/HEXACO
+    point_palette = [
+        "#4dd0e1",
+        "#f47b94",
+        "#8a5be8",
+        "#6bc06b",
+        "#f29f05",
+        "#24c1f1",
+        "#ffa07a",
+        "#7ac36a",
+        "#c798f3",
+        "#ffb347",
+    ]
+
+    fig, ax = plt.subplots(subplot_kw={"polar": True}, figsize=(8, 8))
+    fig.patch.set_facecolor(face_color)
+    ax.set_facecolor(face_color)
+    ax.set_theta_offset(math.pi / 2)
+    ax.set_theta_direction(-1)
+
+    ax.set_ylim(0, 5)
+    ax.set_yticks([1, 2, 3, 4, 5])
+    ax.set_yticklabels(["1", 2, 3, 4, 5], color="white")
+
+    ax.grid(True, linestyle="--", linewidth=0.6, alpha=0.5, color="white")
+    ax.spines["polar"].set_color("white")
+
+    ax.set_xticks(angles_closed[:-1])
+    ax.set_xticklabels(labels, fontsize=10, color="white")
+
+    ax.plot(
+        angles_closed,
+        scores_closed,
+        color=polygon_color,
+        linewidth=2,
+        linestyle="solid",
+    )
+    ax.fill(angles_closed, scores_closed, color=polygon_color, alpha=0.35)
+
+    for idx, (angle, value) in enumerate(zip(angles, scores)):
+        color = point_palette[idx % len(point_palette)]
+        ax.scatter(
+            angle,
+            value,
+            color=color,
+            s=70,
+            edgecolors="white",
+            linewidths=1,
+            zorder=3,
+        )
+
+    ax.set_title(
+        "SVS values",
         color="white",
         fontsize=16,
         fontweight="bold",

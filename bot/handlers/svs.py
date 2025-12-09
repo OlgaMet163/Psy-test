@@ -6,12 +6,13 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, FSInputFile
 
 from bot import dependencies
 from bot.keyboards import build_svs_keyboard, get_svs_label, main_menu_keyboard
 from bot.services.svs import SvsResult
 from bot.utils.text import build_progress_bar
+from bot.utils.plot import build_svs_radar
 
 svs_router = Router(name="svs")
 CALLBACK_PREFIX = "svs"
@@ -120,6 +121,11 @@ async def _finish(
     results = engine.calculate(answers)
     value_results, group_results = _split_results(results)
     message_text = format_results_message(value_results, group_results)
+    radar_path = None
+    try:
+        radar_path = build_svs_radar(results)
+    except Exception:
+        radar_path = None
 
     storage = _ensure_storage()
     hexaco_has_results = False
@@ -129,10 +135,21 @@ async def _finish(
         hexaco_has_results = await storage.has_results(callback.from_user.id, "HEXACO")
         hogan_has_results = await storage.has_results(callback.from_user.id, "HOGAN")
 
+    if radar_path:
+        await callback.message.answer_photo(
+            FSInputFile(radar_path),
+            caption="<b>SVS radar</b>",
+        )
+
     await callback.message.answer(
         message_text,
         reply_markup=main_menu_keyboard(hexaco_has_results, hogan_has_results, True),
     )
+    if radar_path:
+        try:
+            radar_path.unlink(missing_ok=True)
+        except Exception:
+            pass
     await state.clear()
 
 
