@@ -59,6 +59,14 @@ class StorageGateway:
                 )
                 """
             )
+            await db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS participant_emails (
+                    email TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL
+                )
+                """
+            )
             await db.commit()
         self._initialized = True
 
@@ -256,6 +264,28 @@ class StorageGateway:
             await db.execute("DELETE FROM hexaco_answers WHERE user_id = ?", (user_id,))
             await db.execute("DELETE FROM hexaco_results WHERE user_id = ?", (user_id,))
             await db.commit()
+
+    async def save_participant_email(self, user_id: int, email: str) -> None:
+        await self.init()
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                """
+                INSERT OR REPLACE INTO participant_emails (email, user_id)
+                VALUES (?, ?)
+                """,
+                (email.lower(), user_id),
+            )
+            await db.commit()
+
+    async def get_user_id_by_email(self, email: str) -> Optional[int]:
+        await self.init()
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                "SELECT user_id FROM participant_emails WHERE email = ? LIMIT 1",
+                (email.lower(),),
+            )
+            row = await cursor.fetchone()
+            return row[0] if row else None
 
     async def _fetch_latest_rows(
         self, user_id: int, test_name: str

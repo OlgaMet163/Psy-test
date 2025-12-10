@@ -11,14 +11,20 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    ReplyKeyboardRemove,
+)
 
 from bot import dependencies
 from bot.keyboards import (
     build_hogan_keyboard,
     get_hogan_label,
     hogan_insights_keyboard,
-    main_menu_keyboard,
+    build_main_inline_menu,
 )
 from bot.services.hogan import HoganReport, HoganScaleResult, SCALE_DEFINITIONS
 from aiogram.types import FSInputFile
@@ -254,22 +260,51 @@ async def _finish(
 
     if not chunks:
         chunks = ["Результатов Hogan пока нет."]
+    # диаграмма
     if radar_path:
         await callback.message.answer_photo(
             FSInputFile(radar_path),
             caption="<b>Диаграмма Hogan DSUSI-SF</b>",
         )
+
+    # базовые без IM
+    chunks = _drop_im_lines(chunks)
     for chunk in chunks:
         await callback.message.answer(chunk)
+
+    # расширенные + возврат
+    extra_msg_id = None
     if keyboard:
-        await callback.message.answer(
-            "Расширенные выводы Hogan:",
-            reply_markup=keyboard,
+        # добавляем кнопку возврата в меню в конец клавиатуры расширенных выводов
+        builder = InlineKeyboardMarkup(
+            inline_keyboard=[
+                *keyboard.inline_keyboard,
+                [
+                    InlineKeyboardButton(
+                        text="↩️ Вернуться в меню",
+                        callback_data="menu:return:",
+                    )
+                ],
+            ]
         )
-    await callback.message.answer(
-        "Можно вернуться в меню или выбрать другой тест в любой момент.",
-        reply_markup=main_menu_keyboard(hexaco_has_results, True, svs_has_results),
-    )
+        extra_msg = await callback.message.answer(
+            "Расширенные выводы Hogan:",
+            reply_markup=builder,
+        )
+        extra_msg_id = extra_msg.message_id
+    else:
+        return_keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="↩️ Вернуться в меню",
+                        callback_data=f"menu:return:{extra_msg_id or ''}",
+                    )
+                ]
+            ]
+        )
+        await callback.message.answer(" ", reply_markup=return_keyboard)
+
     if radar_path:
         try:
             radar_path.unlink(missing_ok=True)
@@ -433,6 +468,21 @@ def _compose_atlas_domain_text(
 
     bullet_lines = [f"• {statement}" for statement in ordered_statements]
     return f"<b>{title}</b>\n\n" + "\n".join(bullet_lines)
+
+
+def _drop_im_lines(chunks: List[str]) -> List[str]:
+    cleaned: List[str] = []
+    for chunk in chunks:
+        lines = chunk.splitlines()
+        filtered = [
+            line
+            for line in lines
+            if not line.startswith("Социально-одобряемые ответы") and "IM ≥" not in line
+        ]
+        text = "\n".join(filtered).strip()
+        if text:
+            cleaned.append(text)
+    return cleaned
 
 
 def _split_domain_snippet(snippet: str) -> tuple[str, List[str]]:

@@ -2,8 +2,8 @@ from typing import Dict, Sequence
 
 # flake8: noqa: E501
 
-from aiogram.types import InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
-from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
+from aiogram.types import InlineKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 HEXACO_FREQUENCY_OPTIONS = [
     (5, "Почти всегда"),
@@ -197,50 +197,8 @@ def hogan_insights_keyboard(trait_ids: Sequence[str]) -> InlineKeyboardMarkup:
         text=ATLAS_DOMAIN_LABELS["business"],
         callback_data="hogan:atlas:business",
     )
-    builder.button(text="Кураторам", callback_data=f"hogan:coach:{payload}")
     builder.adjust(1)
     return builder.as_markup()
-
-
-def main_menu_keyboard(
-    has_hexaco_results: bool, has_hogan_results: bool, has_svs_results: bool = False
-) -> ReplyKeyboardMarkup:
-    start_emoji = "🚀"
-    restart_emoji = "🔁"
-    results_emoji = "📊"
-    builder = ReplyKeyboardBuilder()
-
-    # Start buttons — одной строкой, упорядочены: HEXACO, Hogan, SVS.
-    start_buttons: list[KeyboardButton] = []
-    if not has_hexaco_results:
-        start_buttons.append(KeyboardButton(text=f"{start_emoji} Начать HEXACO"))
-    if not has_hogan_results:
-        start_buttons.append(KeyboardButton(text=f"{start_emoji} Начать Hogan"))
-    if not has_svs_results:
-        start_buttons.append(KeyboardButton(text=f"{start_emoji} Начать SVS"))
-    if start_buttons:
-        builder.row(*start_buttons)
-
-    # Results / Restart pairs per test
-    if has_hexaco_results:
-        builder.row(
-            KeyboardButton(text=f"{results_emoji} Результаты HEXACO"),
-            KeyboardButton(text=f"{restart_emoji} Перепройти HEXACO"),
-        )
-    if has_hogan_results:
-        builder.row(
-            KeyboardButton(text=f"{results_emoji} Результаты Hogan"),
-            KeyboardButton(text=f"{restart_emoji} Перепройти Hogan"),
-        )
-    if has_svs_results:
-        builder.row(
-            KeyboardButton(text=f"{results_emoji} Результаты SVS"),
-            KeyboardButton(text=f"{restart_emoji} Перепройти SVS"),
-        )
-
-    return builder.as_markup(
-        resize_keyboard=True, input_field_placeholder="Выберите действие"
-    )
 
 
 def _build_answer_keyboard(
@@ -261,3 +219,57 @@ def _get_hogan_options(statement_id: int | None) -> Sequence[tuple[int, str]]:
         if statement_id in {34, 35, 36, 37, 38}
         else HOGAN_DEFAULT_OPTIONS
     )
+
+
+def build_main_inline_menu(
+    has_hexaco_results: bool, has_hogan_results: bool, has_svs_results: bool
+) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    start_emoji = "🚀"
+    results_emoji = "📊"
+    restart_emoji = "🔁"
+
+    # 1. Start buttons (для тестов без результатов)
+    if not has_hexaco_results:
+        builder.button(
+            text=f"{start_emoji} Начать HEXACO", callback_data="menu:start:hexaco"
+        )
+    if not has_hogan_results:
+        builder.button(
+            text=f"{start_emoji} Начать Hogan", callback_data="menu:start:hogan"
+        )
+    if not has_svs_results:
+        builder.button(text=f"{start_emoji} Начать SVS", callback_data="menu:start:svs")
+
+    # 2. Results buttons (для тестов с результатами)
+    if has_hexaco_results:
+        builder.button(
+            text=f"{results_emoji} Результаты HEXACO",
+            callback_data="menu:results:hexaco",
+        )
+    if has_hogan_results:
+        builder.button(
+            text=f"{results_emoji} Результаты Hogan", callback_data="menu:results:hogan"
+        )
+    if has_svs_results:
+        builder.button(
+            text=f"{results_emoji} Результаты SVS", callback_data="menu:results:svs"
+        )
+
+    # 3. Restart buttons (для тестов с результатами)
+    if has_hexaco_results:
+        builder.button(
+            text=f"{restart_emoji} Перепройти HEXACO",
+            callback_data="menu:restart:hexaco",
+        )
+    if has_hogan_results:
+        builder.button(
+            text=f"{restart_emoji} Перепройти Hogan", callback_data="menu:restart:hogan"
+        )
+    if has_svs_results:
+        builder.button(
+            text=f"{restart_emoji} Перепройти SVS", callback_data="menu:restart:svs"
+        )
+
+    builder.adjust(1)
+    return builder.as_markup()

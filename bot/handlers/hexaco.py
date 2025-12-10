@@ -10,7 +10,11 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, FSInputFile
 
 from bot import dependencies
-from bot.keyboards import build_hexaco_keyboard, get_hexaco_label, main_menu_keyboard
+from bot.keyboards import (
+    build_hexaco_keyboard,
+    get_hexaco_label,
+    build_main_inline_menu,
+)
 from bot.utils.text import build_progress_bar
 from bot.utils.plot import build_hexaco_radar
 
@@ -176,7 +180,7 @@ async def _finish(
 
     await callback.message.answer(
         message_text,
-        reply_markup=main_menu_keyboard(True, hogan_has_results, svs_has_results),
+        reply_markup=build_main_inline_menu(True, hogan_has_results, svs_has_results),
     )
     if radar_path:
         try:

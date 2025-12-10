@@ -11,7 +11,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, FSInputFile
 
 from bot import dependencies
-from bot.keyboards import build_svs_keyboard, get_svs_label, main_menu_keyboard
+from bot.keyboards import build_svs_keyboard, get_svs_label, build_main_inline_menu
 from bot.services.svs import SvsResult
 from bot.utils.text import build_progress_bar
 from bot.utils.plot import build_svs_radar
@@ -181,12 +181,9 @@ async def _finish(
         messages.append("Результатов SVS пока нет.")
 
     last_idx = len(messages) - 1
+    menu = build_main_inline_menu(hexaco_has_results, hogan_has_results, True)
     for idx, text in enumerate(messages):
-        reply_markup = (
-            main_menu_keyboard(hexaco_has_results, hogan_has_results, True)
-            if idx == last_idx
-            else None
-        )
+        reply_markup = menu if idx == last_idx else None
         await callback.message.answer(text, reply_markup=reply_markup)
     if radar_path:
         try:
