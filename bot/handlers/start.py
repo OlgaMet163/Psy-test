@@ -7,7 +7,7 @@ from aiogram.types import Message
 
 from bot import dependencies
 from bot.handlers.hexaco import format_results_message
-from bot.handlers.svs import format_results_message as format_svs_results_message
+from bot.handlers.svs import format_group_results, format_value_results
 from bot.handlers.hogan import (
     build_hogan_results_chunks,
     build_hogan_results_keyboard,
@@ -222,6 +222,8 @@ async def handle_show_svs_results(message: Message) -> None:
         return
     value_results = [r for r in public_results if r.category == "value"]
     group_results = [r for r in public_results if r.category == "group"]
+    group_text = format_group_results(group_results)
+    value_texts = format_value_results(value_results)
     radar_path = None
     try:
         radar_path = build_svs_radar(radar_results)
@@ -233,10 +235,21 @@ async def handle_show_svs_results(message: Message) -> None:
             FSInputFile(radar_path),
             caption="<b>Диаграмма SVS</b>",
         )
-    await message.answer(
-        format_svs_results_message(value_results, group_results),
-        reply_markup=main_menu_keyboard(hexaco_ready, hogan_ready, svs_ready),
-    )
+    messages: List[str] = []
+    if group_text:
+        messages.append(group_text)
+    messages.extend(value_texts)
+    if not messages:
+        messages.append("Результатов SVS пока нет.")
+
+    last_idx = len(messages) - 1
+    for idx, text in enumerate(messages):
+        reply_markup = (
+            main_menu_keyboard(hexaco_ready, hogan_ready, svs_ready)
+            if idx == last_idx
+            else None
+        )
+        await message.answer(text, reply_markup=reply_markup)
     if radar_path:
         try:
             radar_path.unlink(missing_ok=True)

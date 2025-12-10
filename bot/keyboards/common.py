@@ -10,6 +10,13 @@ HEXACO_FREQUENCY_OPTIONS = [
     (2, "Редко"),
     (1, "Почти никогда"),
 ]
+HEXACO_IMPORTANCE_OPTIONS = [
+    (5, "Очень важно"),
+    (4, "Важно"),
+    (3, "Умеренно важно"),
+    (2, "Скорее не важно"),
+    (1, "Совсем не важно"),
+]
 HEXACO_STRENGTH_OPTIONS = [
     (5, "Очень сильно"),
     (4, "Сильно"),
@@ -53,11 +60,11 @@ HEXACO_RELIABILITY_OPTIONS = [
     (1, "Редко"),
 ]
 HEXACO_EFFORT_OPTIONS = [
-    (5, "Легко"),
-    (4, "Скорее легко"),
-    (3, "Придётся уговаривать"),
-    (2, "Сложно"),
-    (1, "Крайне сложно"),
+    (5, "Почти всегда приходится"),
+    (4, "Часто приходится"),
+    (3, "Иногда приходится"),
+    (2, "Редко приходится"),
+    (1, "Никогда не приходится"),
 ]
 HEXACO_PREFERENCE_OPTIONS = [
     (5, "Предпочитаю долго наблюдать"),
@@ -76,9 +83,8 @@ HEXACO_IMPACT_OPTIONS = [
 
 HEXACO_DEFAULT_OPTIONS = HEXACO_FREQUENCY_OPTIONS
 HEXACO_CUSTOM_OPTIONS: Dict[int, Sequence[tuple[int, str]]] = {
-    3: HEXACO_STRENGTH_OPTIONS,
+    3: HEXACO_IMPORTANCE_OPTIONS,
     4: HEXACO_COMFORT_OPTIONS,
-    6: HEXACO_EASE_OPTIONS,
     7: HEXACO_STRENGTH_OPTIONS,
     8: HEXACO_EASE_OPTIONS,
     9: HEXACO_COMFORT_OPTIONS,
@@ -102,13 +108,11 @@ HOGAN_OPTIONS = [
 HOGAN_LABELS = {value: label for value, label in HOGAN_OPTIONS}
 
 SVS_OPTIONS = [
+    (5, "Точно про меня"),
+    (4, "Скорее про меня"),
+    (3, "Отчасти про меня"),
+    (2, "Скорее не про меня"),
     (1, "Совсем не про меня"),
-    (2, "Редко про меня"),
-    (3, "Иногда про меня"),
-    (4, "Бывает похоже"),
-    (5, "Часто про меня"),
-    (6, "Обычно про меня"),
-    (7, "Точно про меня"),
 ]
 
 ATLAS_DOMAINS = [

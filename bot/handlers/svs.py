@@ -1,3 +1,4 @@
+# flake8: noqa: E501
 from __future__ import annotations
 
 import random
@@ -62,11 +63,13 @@ async def start_svs(message: Message, state: FSMContext) -> None:
     engine = _ensure_engine()
     order = list(range(engine.total_questions()))
     random.shuffle(order)
-    await state.set_state(SvsStates.answering)
-    await state.update_data(index=0, answers={}, order=order)
-    await message.answer(
-        "Ценностный опросник Шварца (20 утверждений, шкала 1–7). Оцените, насколько каждое утверждение про вас.",
+    intro_msg = await message.answer(
+        "<b>Ценностный опросник Шварца</b>: оцените, насколько каждое утверждение соответствует вам.",
         reply_markup=ReplyKeyboardRemove(),
+    )
+    await state.set_state(SvsStates.answering)
+    await state.update_data(
+        index=0, answers={}, order=order, intro_msg_id=intro_msg.message_id
     )
     await _send_question(message, engine, order, 0)
 
@@ -80,6 +83,7 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
     index = state_data.get("index", 0)
     answers: Dict[int, int] = state_data.get("answers", {})
     order: List[int] = state_data.get("order") or list(range(engine.total_questions()))
+    intro_msg_id: int | None = state_data.get("intro_msg_id")
     if index >= len(order):
         await callback.answer("Ответы уже заполнены.", show_alert=True)
         return
@@ -92,7 +96,7 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
         return
 
     answers[statement.id] = raw_value
-    await state.update_data(index=index + 1, answers=answers)
+    await state.update_data(index=index + 1, answers=answers, intro_msg_id=intro_msg_id)
     await callback.answer("Сохранено ✅")
     try:
         await callback.message.delete()
@@ -110,7 +114,7 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
         )
 
     if index + 1 >= len(order):
-        await _finish(callback, state, answers, engine)
+        await _finish(callback, state, answers, engine, intro_msg_id=intro_msg_id)
         return
 
     await _send_question(callback.message, engine, order, index + 1)
@@ -122,19 +126,24 @@ async def _send_question(
     statement = engine.get_statement(order[index])
     total = len(order)
     await message.answer(
-        f"Вопрос {index + 1}/{total}\n\n{statement.text}",
+        f"<b>Утверждение {index + 1}/{total}</b>\n\n{statement.text}",
         reply_markup=build_svs_keyboard(CALLBACK_PREFIX),
     )
 
 
 async def _finish(
-    callback: CallbackQuery, state: FSMContext, answers: Dict[int, int], engine
+    callback: CallbackQuery,
+    state: FSMContext,
+    answers: Dict[int, int],
+    engine,
+    intro_msg_id: int | None = None,
 ) -> None:
     results = engine.calculate(answers)
     ordered_results = sorted(results, key=lambda item: item.percent, reverse=True)
     radar_results = _order_svs_for_radar(results)
     value_results, group_results = _split_results(ordered_results)
-    message_text = format_results_message(value_results, group_results)
+    group_text = format_group_results(group_results)
+    value_texts = format_value_results(value_results)
     radar_path = None
     try:
         radar_path = build_svs_radar(radar_results)
@@ -149,16 +158,36 @@ async def _finish(
         hexaco_has_results = await storage.has_results(callback.from_user.id, "HEXACO")
         hogan_has_results = await storage.has_results(callback.from_user.id, "HOGAN")
 
+    # попытка удалить вводное сообщение теста (если сохранили id)
+    if intro_msg_id:
+        try:
+            await callback.bot.delete_message(
+                chat_id=callback.from_user.id, message_id=intro_msg_id
+            )
+        except Exception:
+            pass
+
     if radar_path:
         await callback.message.answer_photo(
             FSInputFile(radar_path),
             caption="<b>Диаграмма SVS</b>",
         )
 
-    await callback.message.answer(
-        message_text,
-        reply_markup=main_menu_keyboard(hexaco_has_results, hogan_has_results, True),
-    )
+    messages: List[str] = []
+    if group_text:
+        messages.append(group_text)
+    messages.extend(value_texts)
+    if not messages:
+        messages.append("Результатов SVS пока нет.")
+
+    last_idx = len(messages) - 1
+    for idx, text in enumerate(messages):
+        reply_markup = (
+            main_menu_keyboard(hexaco_has_results, hogan_has_results, True)
+            if idx == last_idx
+            else None
+        )
+        await callback.message.answer(text, reply_markup=reply_markup)
     if radar_path:
         try:
             radar_path.unlink(missing_ok=True)
@@ -185,31 +214,41 @@ def _order_svs_for_radar(results: Sequence[SvsResult]) -> List[SvsResult]:
     return ordered_values + others
 
 
-def format_results_message(
-    values: Sequence[SvsResult], groups: Sequence[SvsResult]
-) -> str:
-    if not values and not groups:
-        return "Результатов SVS пока нет."
+def format_group_results(groups: Sequence[SvsResult]) -> str | None:
+    if not groups:
+        return None
+    lines: List[str] = ["Ценности высшего порядка:"]
+    ordered_groups = sorted(groups, key=lambda item: item.percent, reverse=True)
+    for result in ordered_groups:
+        bar = build_progress_bar(result.percent, result.band_id)
+        lines.append(
+            f"• <b>{result.title}</b>: {result.percent}% ({result.band_label})\n"
+            f"{bar}\n"
+            f"{result.interpretation}"
+        )
+    return "\n\n".join(lines)
 
-    lines: List[str] = ["Ценностный опросник Шварца (SVS):"]
-    if groups:
-        lines.append("\nСводные группы:")
-        ordered_groups = sorted(groups, key=lambda item: item.percent, reverse=True)
-        for result in ordered_groups:
-            bar = build_progress_bar(result.percent, result.band_id)
-            lines.append(
-                f"• <b>{result.title}</b>: {result.percent}% ({result.band_label})\n"
-                f"{bar}\n"
-                f"{result.interpretation}"
-            )
-    if values:
-        lines.append("\nБазовые ценности:")
-        ordered_values = sorted(values, key=lambda item: item.percent, reverse=True)
-        for result in ordered_values:
+
+def format_value_results(values: Sequence[SvsResult]) -> List[str]:
+    if not values:
+        return []
+
+    def _render(subset: Sequence[SvsResult], suffix: str = "") -> str:
+        lines: List[str] = [f"Базовые ценности{suffix}:"]
+        ordered = sorted(subset, key=lambda item: item.percent, reverse=True)
+        for result in ordered:
             bar = build_progress_bar(result.percent, result.band_id)
             lines.append(
                 f"• <b>{result.title} ({result.domain_id})</b>: {result.percent}% ({result.band_label})\n"
                 f"{bar}\n"
                 f"{result.interpretation}"
             )
-    return "\n\n".join(lines)
+        return "\n\n".join(lines)
+
+    full_text = _render(values)
+    if len(full_text) <= 3500 or len(values) <= 5:
+        return [full_text]
+
+    first_chunk = _render(values[:5], " (1–5)")
+    second_chunk = _render(values[5:], " (6–10)")
+    return [first_chunk, second_chunk]
