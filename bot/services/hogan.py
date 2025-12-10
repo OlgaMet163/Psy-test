@@ -68,186 +68,211 @@ class HoganReport:
 
 STATEMENTS: Sequence[HoganStatement] = [
     HoganStatement(
-        1, "When a project hits turbulence, my urgency shows up in my tone."
+        1,
+        "Когда в рабочем проекте начинаются сложности, моё напряжение слышно в голосе.",
     ),
-    HoganStatement(2, "In tense weeks, small setbacks feel bigger than they should."),
-    HoganStatement(3, "Even when provoked, I keep my tone measured.", True),
     HoganStatement(
-        4, "When stakes rise, I prefer to gather extra data before committing."
+        2, "В напряжённые недели небольшие сложности ощущаются крупнее, чем обычно."
     ),
-    HoganStatement(5, "I build contingency plans before I feel comfortable moving."),
+    HoganStatement(3, "Даже когда меня провоцируют, я сохраняю ровный тон.", True),
+    HoganStatement(
+        4, "Когда ставки растут, я предпочитаю собрать больше данных перед решением."
+    ),
+    HoganStatement(
+        5, "Я строю запасные планы, прежде чем мне комфортно двигаться дальше."
+    ),
     HoganStatement(
         6,
-        "I can make a call with incomplete information without replaying it afterward.",
+        "Я могу принять решение с неполной информацией и не прокручивать его потом.",
         True,
     ),
-    HoganStatement(7, "When pressure climbs, I reduce conversation to stay focused."),
     HoganStatement(
-        8, "During crunch time, people may notice I'm harder to read emotionally."
+        7, "Когда давление растёт, я сокращаю разговоры, чтобы сохранять фокус."
+    ),
+    HoganStatement(
+        8, "В период авралов люди замечают, что меня сложнее «читать» эмоционально."
     ),
     HoganStatement(
         9,
-        "In stressful periods, I intentionally check in with others even if I'm busy.",
+        "В стрессовые периоды я специально проверяю, как дела у других, даже если занят.",
         True,
     ),
-    HoganStatement(10, "When things get political, I prefer agreements in writing."),
-    HoganStatement(11, "Under stress, I scrutinize others’ intentions more carefully."),
     HoganStatement(
-        12, "In high-pressure situations, I assume most people mean well.", True
+        10,
+        "Когда ситуация становится политичной, предпочитаю фиксировать договорённости письменно.",
     ),
     HoganStatement(
-        13, "If I disagree, I may comply first and revisit the decision later."
+        11, "Под стрессом я внимательнее присматриваюсь к намерениям других."
     ),
     HoganStatement(
-        14, "When I feel pushed, I stick to my interpretation of the request."
+        12,
+        "В ситуациях высокого давления я исходно считаю, что люди желают добра.",
+        True,
     ),
+    HoganStatement(
+        13, "Если я не согласен, могу сначала согласиться, а потом вернуться к решению."
+    ),
+    HoganStatement(14, "Когда меня подталкивают, я держусь своей трактовки запроса."),
     HoganStatement(
         15,
-        "If I commit to an approach I dislike, I follow through without quiet resistance.",
+        "Если я согласился на невыгодный подход, выполняю его без тихого сопротивления.",
         True,
     ),
     HoganStatement(
-        16, "In critical moments, I trust my judgment more than group consensus."
+        16, "В критические моменты я больше доверяю своему мнению, чем мнению группы."
     ),
-    HoganStatement(17, "I can get protective of decisions that have my name on them."),
+    HoganStatement(17, "Я могу ревностно защищать решения, на которых стоит моё имя."),
     HoganStatement(
-        18, "Under pressure, I actively look for evidence that I might be wrong.", True
-    ),
-    HoganStatement(
-        19, "To keep momentum, I sometimes bypass steps that feel bureaucratic."
+        18, "Под давлением я целенаправленно ищу, где могу ошибаться.", True
     ),
     HoganStatement(
-        20, "When deadlines bite, I'm comfortable taking calculated risks others avoid."
-    ),
-    HoganStatement(21, "Even in crunch time, I avoid bending process rules.", True),
-    HoganStatement(
-        22, "In high-stakes work, I increase how much I communicate my progress."
+        19, "Чтобы сохранить темп, иногда пропускаю шаги, которые кажутся бюрократией."
     ),
     HoganStatement(
-        23, "When pressure is high, I work harder to make my contributions visible."
+        20,
+        "Когда дедлайны поджимают, мне комфортно идти на просчитанные риски, которых другие избегают.",
+    ),
+    HoganStatement(
+        21,
+        "Даже в авральные периоды я избегаю нарушения принятых алгоритмов в процессах.",
+        True,
+    ),
+    HoganStatement(
+        22, "В работе с высокими ставками я больше рассказываю о своём прогрессе."
+    ),
+    HoganStatement(
+        23, "Когда давление велико, я стараюсь сделать свой вклад заметным."
     ),
     HoganStatement(
         24,
-        "When stressed, I'm fine letting results speak without drawing attention.",
+        "В стрессе мне нормально, если результаты говорят сами за себя без привлечения внимания.",
         True,
     ),
     HoganStatement(
-        25, "Under stress, I jump to novel angles others haven't considered."
+        25,
+        "Под стрессом я перескакиваю к новым углам, которые другие не рассматривали.",
     ),
     HoganStatement(
-        26, "I can get absorbed in big ideas and lose track of practical constraints."
+        26, "Я могу увлечься большими идеями и упустить практические ограничения."
     ),
     HoganStatement(
-        27, "When pressure rises, I deliberately anchor on concrete facts.", True
+        27, "Когда растёт давление, я намеренно опираюсь на конкретные факты.", True
     ),
     HoganStatement(
         28,
-        "When quality matters, I prefer to personally review or refine the final output.",
+        "Когда качество критично, я предпочитаю лично просмотреть или доработать финальный результат.",
     ),
     HoganStatement(
-        29, "In crunch time, I step in to ensure details are handled correctly."
+        29,
+        "В авральное время я подключаюсь, чтобы убедиться, что детали сделаны верно.",
     ),
     HoganStatement(
         30,
-        "When stressed, I can delegate and accept solutions done differently than I would.",
+        "Под стрессом я могу делегировать и принять решение, сделанное не так, как сделал бы сам.",
         True,
     ),
     HoganStatement(
-        31, "When stakes are high, I seek early alignment from key stakeholders."
-    ),
-    HoganStatement(32, "I may say yes quickly to avoid disappointing people."),
-    HoganStatement(
-        33, "Under pressure, I can say no without needing reassurance.", True
+        31, "Когда ставки высоки, я ищу раннее согласование с ключевыми стейкхолдерами."
     ),
     HoganStatement(
-        34, "In the last year, I can't recall a situation where I spoke too sharply."
+        32, "Иногда я соглашаюсь слишком быстро, лишь бы не разочаровать людей."
     ),
-    HoganStatement(35, "I've never had to apologize at work for my tone or approach."),
     HoganStatement(
-        36, "No matter the stress level, I always make the perfect decision."
+        33,
+        "Под давлением я могу сказать «нет», не нуждаясь в дополнительном одобрении.",
+        True,
     ),
-    HoganStatement(37, "I have never felt defensive when receiving feedback."),
-    HoganStatement(38, "I never cut corners—ever—even when time is tight."),
+    HoganStatement(34, "За последний год я не помню, чтобы говорил слишком резко."),
+    HoganStatement(
+        35, "Мне никогда не приходилось извиняться на работе за тон или подход."
+    ),
+    HoganStatement(36, "Каков бы ни был стресс, я всегда принимаю идеальное решение."),
+    HoganStatement(
+        37, "Я никогда не чувствовал защитной реакции, получая обратную связь."
+    ),
+    HoganStatement(38, "Я никогда не срезал углы — даже когда времени мало."),
 ]
 
 
 SCALE_DEFINITIONS: Sequence[HoganScaleDefinition] = [
-    HoganScaleDefinition("VR", "Volatile Reactivity", "Excitable", (1, 2, 3)),
-    HoganScaleDefinition("WA", "Worry-Driven Avoidance", "Cautious", (4, 5, 6)),
-    HoganScaleDefinition("IW", "Interpersonal Withdrawal", "Reserved", (7, 8, 9)),
-    HoganScaleDefinition("CG", "Cynical Guardedness", "Skeptical", (10, 11, 12)),
-    HoganScaleDefinition("PP", "Passive Pushback", "Leisurely", (13, 14, 15)),
-    HoganScaleDefinition("SI", "Self-Importance", "Bold", (16, 17, 18)),
-    HoganScaleDefinition("BP", "Boundary-Pushing", "Mischievous", (19, 20, 21)),
-    HoganScaleDefinition("SS", "Spotlight Seeking", "Colorful", (22, 23, 24)),
-    HoganScaleDefinition("UT", "Unconventional Thinking", "Imaginative", (25, 26, 27)),
-    HoganScaleDefinition("PC", "Perfectionistic Control", "Diligent", (28, 29, 30)),
-    HoganScaleDefinition("AD", "Approval Dependence", "Dutiful", (31, 32, 33)),
+    HoganScaleDefinition(
+        "VR", "Эмоциональная реактивность", "Эмоциональный", (1, 2, 3)
+    ),
+    HoganScaleDefinition("WA", "Тревожное избегание", "Осторожный", (4, 5, 6)),
+    HoganScaleDefinition("IW", "Межличностное отстранение", "Сдержанный", (7, 8, 9)),
+    HoganScaleDefinition("CG", "Оборонительный скепсис", "Скептичный", (10, 11, 12)),
+    HoganScaleDefinition("PP", "Пассивное сопротивление", "Непоспешный", (13, 14, 15)),
+    HoganScaleDefinition("SI", "Само-значимость", "Самоуверенный", (16, 17, 18)),
+    HoganScaleDefinition("BP", "Нарушение границ", "Авантюрный", (19, 20, 21)),
+    HoganScaleDefinition("SS", "Жажда внимания", "Яркий", (22, 23, 24)),
+    HoganScaleDefinition("UT", "Нетипичное мышление", "Образный", (25, 26, 27)),
+    HoganScaleDefinition("PC", "Перфекционистский контроль", "Дотошный", (28, 29, 30)),
+    HoganScaleDefinition("AD", "Зависимость от одобрения", "Послушный", (31, 32, 33)),
 ]
 
 IM_ITEMS: Sequence[int] = (34, 35, 36, 37, 38)
 
 HOGAN_LEVELS: Sequence[Tuple[str, float, float, str]] = (
-    ("high", 3.8, 5.0, "High"),
-    ("moderate", 3.2, 3.79, "Moderate"),
-    ("low", 1.0, 3.19, "Low"),
+    ("high", 3.8, 5.0, "Высокий"),
+    ("moderate", 3.2, 3.79, "Умеренный"),
+    ("low", 1.0, 3.19, "Низкий"),
 )
 
 HOGAN_TRAITS_META: Dict[str, Dict[str, str]] = {
     "VR": {
-        "description": "emotionally intense, quick to register disappointment",
-        "risks": "mood swings, impulsive exits, burning bridges",
-        "strengths": "passion, early risk detection, relational standards",
+        "description": "эмоционально интенсивный, быстро фиксирует разочарование",
+        "risks": "скачки настроения, импульсивные уходы, сжигание мостов",
+        "strengths": "страсть, раннее считывание рисков, высокие стандарты отношений",
     },
     "WA": {
-        "description": "cautious, seeks safety before acting",
-        "risks": "analysis paralysis, delay, heavy reassurance needs",
-        "strengths": "risk sensing, quality control, thoughtful planning",
+        "description": "осторожный, ищет безопасность перед действиями",
+        "risks": "паралич анализа, задержки, сильная потребность в подтверждениях",
+        "strengths": "чувствительность к рискам, контроль качества, продуманное планирование",
     },
     "IW": {
-        "description": "withdraws to protect focus",
-        "risks": "emotional distance, sparse feedback, perceived coldness",
-        "strengths": "calm under stress, independent work, neutrality in conflict",
+        "description": "уходит в себя, чтобы защитить фокус",
+        "risks": "эмоциональная дистанция, мало обратной связи, ощущение холодности",
+        "strengths": "спокойствие под стрессом, самостоятельная работа, нейтральность в конфликтах",
     },
     "CG": {
-        "description": "skeptical, scans for hidden agendas",
-        "risks": "trust erosion, accusation loops, defensive tone",
-        "strengths": "due diligence, standards defense, fearless questioning",
+        "description": "скептик, сканирует скрытые мотивы",
+        "risks": "размывание доверия, циклы обвинений, оборонительный тон",
+        "strengths": "проверка фактов, защита стандартов, смелые вопросы",
     },
     "PP": {
-        "description": "appears agreeable while resisting covertly",
-        "risks": "quiet derailment, vague commitments, simmering resentment",
-        "strengths": "boundary protection, non-confrontational pushback",
+        "description": "выглядит согласным, но сопротивляется скрыто",
+        "risks": "тихое торможение, размытые обязательства, скрытое раздражение",
+        "strengths": "защита границ, неконфронтационное сопротивление",
     },
     "SI": {
-        "description": "self-confident, visibility-seeking",
-        "risks": "feedback blindness, status battles, overconfidence",
-        "strengths": "bold goals, decisive calls, inspirational presence",
+        "description": "уверен в себе, ищет видимость",
+        "risks": "глухота к обратной связи, борьба за статус, излишняя уверенность",
+        "strengths": "смелые цели, решительность, вдохновляющее присутствие",
     },
     "BP": {
-        "description": "risk-taking rule bender",
-        "risks": "ethical shortcuts, thrill seeking, compliance gaps",
-        "strengths": "agility in crisis, bold experimentation, political savvy",
+        "description": "рискующий, склонен сгибать правила",
+        "risks": "этические сокращения, поиск острых ощущений, пробелы в соблюдении требований",
+        "strengths": "маневренность в кризисе, смелые эксперименты, политическая чуткость",
     },
     "SS": {
-        "description": "expressive, craves spotlight",
-        "risks": "center-stage behavior, drama, message dilution",
-        "strengths": "energy, storytelling, rapid engagement",
+        "description": "выразительный, тянется к вниманию",
+        "risks": "поведение «в центре сцены», драматизация, размывание основного сообщения",
+        "strengths": "энергия, сторителлинг, быстрое вовлечение",
     },
     "UT": {
-        "description": "imaginative, jumps to novel angles",
-        "risks": "drifting from reality, loose priorities, idea overload",
-        "strengths": "strategy reframes, creative breakthroughs, future spotting",
+        "description": "воображение, быстро переходит к новым углам",
+        "risks": "уход от реальности, расплывчатые приоритеты, перегруз идеями",
+        "strengths": "переформулировка стратегии, креативные прорывы, видение будущего",
     },
     "PC": {
-        "description": "perfectionistic controller",
-        "risks": "bottlenecks, micromanagement, fatigue",
-        "strengths": "precision, reliability, process excellence",
+        "description": "перфекционистский контроль",
+        "risks": "узкие места, микроменеджмент, усталость",
+        "strengths": "точность, надёжность, процессное совершенство",
     },
     "AD": {
-        "description": "approval-seeking and stakeholder-sensitive",
-        "risks": "overcommitment, difficulty saying no, dependency on reassurance",
-        "strengths": "service mindset, early expectation sensing, coalition building",
+        "description": "ориентирован на одобрение и чувствителен к стейкхолдерам",
+        "risks": "перегруз обязательствами, сложность сказать «нет», зависимость от подтверждений",
+        "strengths": "сервисный подход, раннее считывание ожиданий, построение коалиций",
     },
 }
 
@@ -327,10 +352,9 @@ class HoganEngine:
                     interpretation=interpretation,
                 )
             )
-        im_values = [
-            self._transform_value(answers[item_id], item_id) for item_id in IM_ITEMS
-        ]
-        impression = round(sum(im_values) / len(im_values), 2)
+        # Проверочные пункты IM: считаем долю максимальных (социально-желательных) ответов.
+        im_values = [1 if answers[item_id] == 5 else 0 for item_id in IM_ITEMS]
+        impression = round(sum(im_values) / len(im_values), 2)  # 0.0–1.0
         return HoganReport(scale_results, impression)
 
     def _validate_answers(self, answers: Dict[int, int]) -> None:
@@ -358,7 +382,7 @@ class HoganEngine:
         for level_id, min_value, max_value, label in HOGAN_LEVELS:
             if min_value <= mean_score <= max_value:
                 return level_id, label
-        return "unknown", "Unknown"
+        return "unknown", "Неизвестно"
 
     @staticmethod
     def _build_interpretation(
@@ -371,22 +395,22 @@ class HoganEngine:
         strengths = meta["strengths"]
         if level_id == "high":
             return (
-                f"High {scale.title} ({scale.hds_label}) means {description}. "
-                f"Under stress the main watch-outs are {risks}. "
-                f"Anchor the strength side: {strengths}."
+                f"Высокая {scale.title} ({scale.hds_label}) — {description}. "
+                f"Под нагрузкой ключевые риски: {risks}. "
+                f"Опирайтесь на сильные стороны: {strengths}."
             )
         if level_id == "moderate":
             return (
-                f"Moderate {scale.title} ({scale.hds_label}) shows the pattern surfaces situationally."
-                f" Under heavy load it can slide into {risks}, so set guardrails early."
-                f" Keep the upside available: {strengths}."
+                f"Умеренная {scale.title} ({scale.hds_label}) проявляется ситуативно."
+                f" При сильной нагрузке может уйти в {risks}, ставьте ограничители заранее."
+                f" Сохраняйте плюсы: {strengths}."
             )
         if level_id == "low":
             return (
-                f"Low {scale.title} ({scale.hds_label}) means {description} rarely drives your style."
-                f" That lowers risks such as {risks}, yet make sure you can still access {strengths} when needed."
+                f"Низкая {scale.title} ({scale.hds_label}) означает, что {description} редко ведёт ваш стиль."
+                f" Это снижает риски вроде {risks}, но убедитесь, что при необходимости можете включить {strengths}."
             )
-        return "Interpretation is unavailable."
+        return "Интерпретация недоступна."
 
 
 class HoganInsights:

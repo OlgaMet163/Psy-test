@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from typing import Dict, List, Sequence, Tuple
 
 from aiogram import F, Router
@@ -25,6 +26,8 @@ SVS_TEXT_TRIGGERS = {
     "svs",
     "🚀 start svs",
     "🔁 restart svs",
+    "🚀 начать svs",
+    "🔁 перепройти svs",
 }
 
 
@@ -49,21 +52,23 @@ async def start_svs(message: Message, state: FSMContext) -> None:
     if current_state:
         if str(current_state).startswith("SvsStates"):
             await message.answer(
-                "SVS is already in progress. Continue answering with the buttons below."
+                "SVS уже идёт. Продолжайте отвечать с помощью кнопок ниже."
             )
             return
         await message.answer(
-            "Another assessment is already in progress. Finish it or send /reset."
+            "Сейчас идёт другой тест. Завершите его или отправьте /reset."
         )
         return
     engine = _ensure_engine()
+    order = list(range(engine.total_questions()))
+    random.shuffle(order)
     await state.set_state(SvsStates.answering)
-    await state.update_data(index=0, answers={})
+    await state.update_data(index=0, answers={}, order=order)
     await message.answer(
-        "Schwartz Value Survey (20 items, 1–7 scale). Rate how true each statement is for you.",
+        "Ценностный опросник Шварца (20 утверждений, шкала 1–7). Оцените, насколько каждое утверждение про вас.",
         reply_markup=ReplyKeyboardRemove(),
     )
-    await _send_question(message, engine, 0)
+    await _send_question(message, engine, order, 0)
 
 
 @svs_router.callback_query(
@@ -74,17 +79,21 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
     state_data = await state.get_data()
     index = state_data.get("index", 0)
     answers: Dict[int, int] = state_data.get("answers", {})
-    statement = engine.get_statement(index)
+    order: List[int] = state_data.get("order") or list(range(engine.total_questions()))
+    if index >= len(order):
+        await callback.answer("Ответы уже заполнены.", show_alert=True)
+        return
+    statement = engine.get_statement(order[index])
 
     try:
         raw_value = int(callback.data.split(":")[1])
     except (ValueError, IndexError):
-        await callback.answer("Could not parse the answer.", show_alert=True)
+        await callback.answer("Не удалось распознать ответ.", show_alert=True)
         return
 
     answers[statement.id] = raw_value
     await state.update_data(index=index + 1, answers=answers)
-    await callback.answer("Saved ✅")
+    await callback.answer("Сохранено ✅")
     try:
         await callback.message.delete()
     except Exception:
@@ -100,18 +109,20 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
             label=get_svs_label(raw_value),
         )
 
-    if index + 1 >= engine.total_questions():
+    if index + 1 >= len(order):
         await _finish(callback, state, answers, engine)
         return
 
-    await _send_question(callback.message, engine, index + 1)
+    await _send_question(callback.message, engine, order, index + 1)
 
 
-async def _send_question(message: Message, engine, index: int) -> None:
-    statement = engine.get_statement(index)
-    total = engine.total_questions()
+async def _send_question(
+    message: Message, engine, order: List[int], index: int
+) -> None:
+    statement = engine.get_statement(order[index])
+    total = len(order)
     await message.answer(
-        f"Question {index + 1}/{total}\n\n{statement.text}",
+        f"Вопрос {index + 1}/{total}\n\n{statement.text}",
         reply_markup=build_svs_keyboard(CALLBACK_PREFIX),
     )
 
@@ -141,7 +152,7 @@ async def _finish(
     if radar_path:
         await callback.message.answer_photo(
             FSInputFile(radar_path),
-            caption="<b>SVS radar</b>",
+            caption="<b>Диаграмма SVS</b>",
         )
 
     await callback.message.answer(
@@ -178,11 +189,11 @@ def format_results_message(
     values: Sequence[SvsResult], groups: Sequence[SvsResult]
 ) -> str:
     if not values and not groups:
-        return "No SVS results yet."
+        return "Результатов SVS пока нет."
 
-    lines: List[str] = ["Schwartz Value Survey (SVS):"]
+    lines: List[str] = ["Ценностный опросник Шварца (SVS):"]
     if groups:
-        lines.append("\nHigher-order themes:")
+        lines.append("\nСводные группы:")
         ordered_groups = sorted(groups, key=lambda item: item.percent, reverse=True)
         for result in ordered_groups:
             bar = build_progress_bar(result.percent, result.band_id)
@@ -192,7 +203,7 @@ def format_results_message(
                 f"{result.interpretation}"
             )
     if values:
-        lines.append("\nCore values:")
+        lines.append("\nБазовые ценности:")
         ordered_values = sorted(values, key=lambda item: item.percent, reverse=True)
         for result in ordered_values:
             bar = build_progress_bar(result.percent, result.band_id)

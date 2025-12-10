@@ -16,7 +16,7 @@ from bot.services.svs import SvsResult
 
 
 def build_hogan_radar(scales: Sequence[HoganScaleResult]) -> Path:
-    """Строит радар-диаграмму по шкалам Hogan и возвращает путь к PNG."""
+    """Строит полярную диаграмму по шкалам Hogan и возвращает путь к PNG."""
     if not scales:
         raise ValueError("Нет шкал для построения диаграммы.")
 
@@ -93,11 +93,7 @@ def build_hogan_radar(scales: Sequence[HoganScaleResult]) -> Path:
 
     # Заголовок.
     ax.set_title(
-        "Hogan traits",
-        color="white",
-        fontsize=16,
-        fontweight="bold",
-        pad=20,
+        "Шкалы Hogan DSUSI-SF", color="white", fontsize=16, fontweight="bold", pad=20
     )
 
     fig.tight_layout()
@@ -111,7 +107,7 @@ def build_hogan_radar(scales: Sequence[HoganScaleResult]) -> Path:
 
 
 def build_hexaco_radar(results: Sequence[HexacoResult]) -> Path:
-    """Строит радар-диаграмму по публичным шкалам HEXACO, возвращает путь к PNG."""
+    """Строит полярную диаграмму по публичным шкалам HEXACO, возвращает путь к PNG."""
     if not results:
         raise ValueError("Нет результатов HEXACO для построения диаграммы.")
 
@@ -177,11 +173,7 @@ def build_hexaco_radar(results: Sequence[HexacoResult]) -> Path:
         )
 
     ax.set_title(
-        "HEXACO traits",
-        color="white",
-        fontsize=16,
-        fontweight="bold",
-        pad=20,
+        "Профиль HEXACO", color="white", fontsize=16, fontweight="bold", pad=20
     )
 
     fig.tight_layout()
@@ -194,7 +186,7 @@ def build_hexaco_radar(results: Sequence[HexacoResult]) -> Path:
 
 
 def build_svs_radar(results: Sequence[SvsResult]) -> Path:
-    """Строит радар-диаграмму по ценностям SVS, возвращает путь к PNG."""
+    """Строит полярную диаграмму по ценностям SVS, возвращает путь к PNG."""
     if not results:
         raise ValueError("Нет результатов SVS для построения диаграммы.")
 
@@ -264,13 +256,7 @@ def build_svs_radar(results: Sequence[SvsResult]) -> Path:
             zorder=3,
         )
 
-    ax.set_title(
-        "SVS values",
-        color="white",
-        fontsize=16,
-        fontweight="bold",
-        pad=20,
-    )
+    ax.set_title("Ценности SVS", color="white", fontsize=16, fontweight="bold", pad=20)
 
     fig.tight_layout()
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")

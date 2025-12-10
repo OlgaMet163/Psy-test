@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from typing import Dict, List
 
 from aiogram import F, Router
@@ -31,6 +32,8 @@ HEXACO_TEXT_TRIGGERS = {
     "hexaco",
     "🚀 start hexaco",
     "🔁 restart hexaco",
+    "🚀 начать hexaco",
+    "🔁 перепройти hexaco",
 }
 
 
@@ -56,25 +59,26 @@ async def start_hexaco(message: Message, state: FSMContext) -> None:
         # Если уже в HEXACO — не перезапускаем, а просим продолжить.
         if str(current_state).startswith("HexacoStates"):
             await message.answer(
-                "HEXACO is already in progress. Continue answering with the buttons below."
+                "HEXACO уже идёт. Продолжайте отвечать с помощью кнопок ниже."
             )
             return
         # Если другой тест — блокируем.
         await message.answer(
-            "Another assessment is already in progress. Finish it or send /reset."
+            "Сейчас идёт другой тест. Завершите его или отправьте /reset."
         )
         return
     engine = _ensure_engine()
+    order = list(range(engine.total_questions()))
+    random.shuffle(order)
     await state.set_state(HexacoStates.answering)
-    await state.update_data(index=0, answers={})
-    await message.answer(
-        (
-            "HEXACO two-facet form: answer how often each statement is true for you, "
-            "using the buttons below based on your typical behavior."
-        ),
+    intro = await message.answer(
+        ("<b>HEXACO</b>: оценивайте утверждения, исходя из своего обычного поведения."),
         reply_markup=ReplyKeyboardRemove(),
     )
-    await _send_question(message, engine, 0)
+    await state.update_data(
+        index=0, answers={}, order=order, intro_message_id=intro.message_id
+    )
+    await _send_question(message, engine, order, 0)
 
 
 @hexaco_router.callback_query(
@@ -85,13 +89,17 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
     state_data = await state.get_data()
     index = state_data.get("index", 0)
     answers: Dict[int, int] = state_data.get("answers", {})
-    statement = engine.get_statement(index)
+    order: List[int] = state_data.get("order") or list(range(engine.total_questions()))
+    if index >= len(order):
+        await callback.answer("Ответы уже заполнены.", show_alert=True)
+        return
+    statement = engine.get_statement(order[index])
 
     raw_value = int(callback.data.split(":")[1])
     answers[statement.id] = raw_value
 
     await state.update_data(index=index + 1, answers=answers)
-    await callback.answer("Saved ✅")
+    await callback.answer("Сохранено ✅")
     try:
         await callback.message.delete()
     except Exception:
@@ -107,18 +115,20 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
             label=get_hexaco_label(statement.id, raw_value),
         )
 
-    if index + 1 >= engine.total_questions():
+    if index + 1 >= len(order):
         await _finish(callback, state, answers, engine)
         return
 
-    await _send_question(callback.message, engine, index + 1)
+    await _send_question(callback.message, engine, order, index + 1)
 
 
-async def _send_question(message: Message, engine, index: int) -> None:
-    statement = engine.get_statement(index)
-    total = engine.total_questions()
+async def _send_question(
+    message: Message, engine, order: List[int], index: int
+) -> None:
+    statement = engine.get_statement(order[index])
+    total = len(order)
     await message.answer(
-        f"Question {index + 1}/{total}\n\n{statement.text}",
+        f"<b>Вопрос {index + 1}/{total}</b>\n\n{statement.text}",
         reply_markup=build_hexaco_keyboard(CALLBACK_PREFIX, statement.id),
     )
 
@@ -151,8 +161,18 @@ async def _finish(
     if radar_path:
         await callback.message.answer_photo(
             FSInputFile(radar_path),
-            caption="<b>HEXACO radar</b>",
+            caption="<b>Диаграмма HEXACO</b>",
         )
+
+    # Удаляем вступительное сообщение, если оно устарело.
+    intro_message_id = (await state.get_data()).get("intro_message_id")
+    if intro_message_id:
+        try:
+            await callback.message.bot.delete_message(
+                chat_id=callback.message.chat.id, message_id=intro_message_id
+            )
+        except Exception:
+            pass
 
     await callback.message.answer(
         message_text,
@@ -168,9 +188,9 @@ async def _finish(
 
 def format_results_message(results: List["HexacoResult"]) -> str:
     if not results:
-        return "No HEXACO results yet."
+        return "Результатов HEXACO пока нет."
     ordered = sorted(results, key=lambda item: item.percent, reverse=True)
-    text_lines = ["HEXACO results:"]
+    text_lines: list[str] = []
     for result in ordered:
         bar = build_progress_bar(result.percent, result.band_id)
         text_lines.append(

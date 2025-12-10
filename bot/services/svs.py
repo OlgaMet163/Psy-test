@@ -64,71 +64,75 @@ class SvsResult:
 
 STATEMENTS: Sequence[SvsStatement] = [
     SvsStatement(
-        1, "If instructions don’t make sense, you propose a better approach.", "SD"
+        1, "Если инструкции кажутся нелогичными, вы предлагаете способ получше.", "SD"
     ),
     SvsStatement(
-        2, "You enjoy teaching yourself skills without external deadlines.", "SD"
+        2, "Вам нравится учиться навыкам самостоятельно, без внешних дедлайнов.", "SD"
     ),
     SvsStatement(
         3,
-        "Change (new projects/environments) energizes you more than it drains you.",
+        "Изменения (новые проекты/среды) скорее заряжают вас, чем выматывают.",
         "ST",
     ),
+    SvsStatement(4, "Вы часто выбираете досуг с вызовом или долей риска.", "ST"),
+    SvsStatement(5, "Вы намеренно добавляете маленькие «радости» в неделю.", "HE"),
     SvsStatement(
-        4, "You often choose leisure that includes challenge or a bit of risk.", "ST"
-    ),
-    SvsStatement(5, "You intentionally build small “treats” into your week.", "HE"),
-    SvsStatement(
-        6, "“This will feel good” influences your choices even beyond usefulness.", "HE"
+        6, "«Это будет приятно» влияет на ваши решения даже сверх пользы.", "HE"
     ),
     SvsStatement(
         7,
-        "External feedback (ratings, praise, benchmarks) boosts your motivation.",
+        "Внешняя обратная связь (оценки, похвала, бенчмарки) поднимает мотивацию.",
         "AC",
     ),
     SvsStatement(
-        8, "Over the next year, “leveling up” skills/achievements matters to you.", "AC"
+        8, "В ближайший год для вас важен «апгрейд» навыков и достижений.", "AC"
     ),
-    SvsStatement(9, "You often set priorities for a group without being asked.", "PO"),
+    SvsStatement(9, "Вы часто расставляете приоритеты для группы без просьбы.", "PO"),
     SvsStatement(
         10,
-        "You’re comfortable negotiating for what you want, even if it creates tension.",
+        "Вам комфортно добиваться своего в переговорах, даже если это создаёт напряжение.",
         "PO",
     ),
-    SvsStatement(11, "Backup plans and contingencies help you feel calm.", "SEC"),
     SvsStatement(
-        12, "You avoid situations that could “spiral” into chaos or major loss.", "SEC"
+        11, "Запасные планы и альтернативы помогают вам сохранять спокойствие.", "SEC"
     ),
     SvsStatement(
-        13, "Doing things according to stated rules/agreements matters to you.", "CO"
+        12,
+        "Вы избегаете ситуаций, которые могут «раскрутиться» в хаос или крупный ущерб.",
+        "SEC",
     ),
     SvsStatement(
-        14, "You often hold back blunt honesty to keep relationships smooth.", "CO"
+        13, "Вам важно делать всё по установленным правилам и договорённостям.", "CO"
     ),
-    SvsStatement(15, "You like keeping annual rituals consistent year to year.", "TR"),
     SvsStatement(
-        16, "“We’ve always done it this way” carries real weight for you.", "TR"
+        14, "Вы часто сглаживаете прямоту, чтобы удерживать отношения ровными.", "CO"
     ),
-    SvsStatement(17, "Others tend to rely on you at short notice.", "BE"),
     SvsStatement(
-        18, "When someone close is stressed, you quickly shift into support mode.", "BE"
+        15, "Вам нравится, когда ежегодные ритуалы остаются неизменными.", "TR"
+    ),
+    SvsStatement(16, "«Мы всегда делали так» для вас имеет вес.", "TR"),
+    SvsStatement(17, "Другие часто рассчитывают на вас в короткий срок.", "BE"),
+    SvsStatement(
+        18,
+        "Когда близкий человек в стрессе, вы быстро переключаетесь в режим поддержки.",
+        "BE",
     ),
     SvsStatement(
         19, "You often think about second-order effects on groups or systems.", "UN"
     ),
     SvsStatement(
         20,
-        "Ethical/social impact alignment influences which organizations you engage with.",
+        "Этическое и социальное влияние влияет на выбор организаций, с которыми вы работаете.",
         "UN",
     ),
 ]
 
 BANDS: Sequence[Band] = [
-    Band("very_low", "Very low", 0, 13, min_inclusive=True),
-    Band("low", "Low", 13, 31),
-    Band("medium", "Medium", 31, 68),
-    Band("high", "High", 68, 87),
-    Band("very_high", "Very high", 87, 100),
+    Band("very_low", "Очень низкий", 0, 13, min_inclusive=True),
+    Band("low", "Низкий", 13, 31),
+    Band("medium", "Средний", 31, 68),
+    Band("high", "Высокий", 68, 87),
+    Band("very_high", "Очень высокий", 87, 100),
 ]
 
 
@@ -142,151 +146,151 @@ def _interp(levels: Sequence[str]) -> Dict[str, str]:
 VALUE_DEFINITIONS: Sequence[ValueDefinition] = [
     ValueDefinition(
         id="SD",
-        title="Self-Direction",
+        title="Самоопределение",
         group_id="openness_change",
         statements=[1, 2],
         interpretations=_interp(
             [
-                "Prefers structure over autonomy; may avoid self-directed paths.",
-                "Takes direction well but may underuse own ideas.",
-                "Balances guidance with independent moves.",
-                "Comfortable steering own work and decisions.",
-                "Strong drive for autonomy and self-initiated change.",
+                "Предпочитает структуру автономии; может избегать самонаправленных путей.",
+                "Хорошо следует указаниям, но может недоиспользовать собственные идеи.",
+                "Балансирует руководство и самостоятельные шаги.",
+                "Уверенно управляет своей работой и решениями.",
+                "Сильное стремление к автономии и изменениям по собственной инициативе.",
             ]
         ),
     ),
     ValueDefinition(
         id="ST",
-        title="Stimulation",
+        title="Стимуляция",
         group_id="openness_change",
         statements=[3, 4],
         interpretations=_interp(
             [
-                "Seeks predictability; may find change de-energizing.",
-                "Tolerates some novelty but prefers stability.",
-                "Open to change when benefits are clear.",
-                "Regularly looks for variety and new challenges.",
-                "Actively pursues novelty and risk for energy.",
+                "Ищет предсказуемость; перемены обессиливают.",
+                "Терпит новизну, но предпочитает стабильность.",
+                "Открыт к переменам, когда выгоды ясны.",
+                "Регулярно ищет разнообразие и новые вызовы.",
+                "Активно преследует новизну и риск ради энергии.",
             ]
         ),
     ),
     ValueDefinition(
         id="HE",
-        title="Hedonism",
+        title="Гедонизм",
         group_id="openness_change",
         statements=[5, 6],
         interpretations=_interp(
             [
-                "Rarely prioritizes pleasure; focuses on utility and duty.",
-                "Pleasure is secondary to function.",
-                "Balances enjoyment with practicality.",
-                "Deliberately builds enjoyment into routines.",
-                "Leads with pleasure signals; protect long-term aims.",
+                "Редко ставит удовольствие на первое место; фокус на пользе и долге.",
+                "Удовольствие вторично по сравнению с функцией.",
+                "Балансирует удовольствие и практичность.",
+                "Осознанно добавляет удовольствие в рутины.",
+                "Ставит удовольствие во главе; следите за долгосрочными целями.",
             ]
         ),
     ),
     ValueDefinition(
         id="AC",
-        title="Achievement",
+        title="Достижения",
         group_id="self_enhancement",
         statements=[7, 8],
         interpretations=_interp(
             [
-                "Low focus on advancement; external feedback matters little.",
-                "Goal focus rises with context but is moderate.",
-                "Steady progress orientation; balances mastery and rest.",
-                "Clear growth mindset; feedback energizes improvement.",
-                "Highly driven for skill/status gains; watch overextension.",
+                "Низкий фокус на продвижении; внешняя оценка мало влияет.",
+                "Цели растут по ситуации, но умеренно.",
+                "Стабильная ориентация на прогресс; баланс мастерства и отдыха.",
+                "Явный рост-мышление; обратная связь заряжает улучшения.",
+                "Сильный драйв к росту статуса и навыков; следите за перегрузом.",
             ]
         ),
     ),
     ValueDefinition(
         id="PO",
-        title="Power",
+        title="Власть",
         group_id="self_enhancement",
         statements=[9, 10],
         interpretations=_interp(
             [
-                "Avoids influence roles; prefers harmony over control.",
-                "Occasionally steps up but limits conflict.",
-                "Comfortable leading when needed.",
-                "Readily asserts direction and negotiates for outcomes.",
-                "Strong influence motive; manage impact on relationships.",
+                "Избегает ролей влияния; предпочитает гармонию контролю.",
+                "Иногда берёт инициативу, но ограничивает конфликты.",
+                "Готов вести при необходимости.",
+                "Легко задаёт направление и ведёт переговоры.",
+                "Сильный мотив влияния; следите за эффектом на отношения.",
             ]
         ),
     ),
     ValueDefinition(
         id="SEC",
-        title="Security",
+        title="Безопасность",
         group_id="conservation",
         statements=[11, 12],
         interpretations=_interp(
             [
-                "Accepts volatility; low emphasis on safeguards.",
-                "Some caution, but risk tolerance is moderate.",
-                "Balances contingency thinking with flexibility.",
-                "Values stability and proactive risk controls.",
-                "Strong security focus; may over-avoid uncertainty.",
+                "Комфорт с волатильностью; мало акцента на защите.",
+                "Есть осторожность, но умеренная терпимость к риску.",
+                "Балансирует продумывание сценариев и гибкость.",
+                "Ценит стабильность и профилактику рисков.",
+                "Сильный фокус на безопасности; может чрезмерно избегать неопределённости.",
             ]
         ),
     ),
     ValueDefinition(
         id="CO",
-        title="Conformity",
+        title="Конформность",
         group_id="conservation",
         statements=[13, 14],
         interpretations=_interp(
             [
-                "Challenges rules; prioritizes candor over harmony.",
-                "Selectively follows rules; direct when needed.",
-                "Adapts to rules while keeping some flexibility.",
-                "Prefers clear rules and smooth interactions.",
-                "Strong rule-alignment; may suppress candor to keep peace.",
+                "Оспаривает правила; ставит прямоту выше гармонии.",
+                "Выборочно следует правилам; при необходимости прямолинеен.",
+                "Адаптируется к правилам, сохраняя гибкость.",
+                "Предпочитает ясные правила и ровное общение.",
+                "Сильно ориентирован на правила; может подавлять прямоту ради мира.",
             ]
         ),
     ),
     ValueDefinition(
         id="TR",
-        title="Tradition",
+        title="Традиция",
         group_id="conservation",
         statements=[15, 16],
         interpretations=_interp(
             [
-                "Little attachment to rituals; favors innovation.",
-                "Keeps few traditions; open to change most customs.",
-                "Maintains some rituals while updating practices.",
-                "Values continuity and repeated rituals.",
-                "Deeply anchored in tradition; change needs strong rationale.",
+                "Мало привязан к ритуалам; предпочитает инновации.",
+                "Сохраняет немного традиций; большинство готов менять.",
+                "Удерживает некоторые ритуалы, обновляя практики.",
+                "Ценит преемственность и повторяющиеся ритуалы.",
+                "Глубоко укоренён в традициях; изменения требуют веских причин.",
             ]
         ),
     ),
     ValueDefinition(
         id="BE",
-        title="Benevolence",
+        title="Доброта",
         group_id="self_transcendence",
         statements=[17, 18],
         interpretations=_interp(
             [
-                "Rarely steps into immediate support roles.",
-                "Offers help when asked; cautious with bandwidth.",
-                "Provides support when feasible; balances own needs.",
-                "Proactively supports close others under pressure.",
-                "Highly reliable for others; watch for overload.",
+                "Редко сразу включается в поддержку.",
+                "Помогает по запросу; бережно расходует ресурс.",
+                "Поддерживает, когда возможно; балансирует свои потребности.",
+                "Проактивно поддерживает близких под давлением.",
+                "Очень надёжен для других; следите за перегрузом.",
             ]
         ),
     ),
     ValueDefinition(
         id="UN",
-        title="Universalism",
+        title="Универсализм",
         group_id="self_transcendence",
         statements=[19, 20],
         interpretations=_interp(
             [
-                "Low focus on wider impact; prioritizes local goals.",
-                "Occasional consideration of broader effects.",
-                "Balanced view of personal and societal outcomes.",
-                "Often weighs ethical/system effects in choices.",
-                "Strong global/ethical lens guiding engagement.",
+                "Низкий фокус на широком влиянии; приоритет локальным целям.",
+                "Иногда учитывает более широкие эффекты.",
+                "Баланс личных и общественных результатов.",
+                "Часто взвешивает этические и системные эффекты в решениях.",
+                "Сильная глобальная и этическая оптика, направляющая выбор.",
             ]
         ),
     ),
@@ -295,57 +299,57 @@ VALUE_DEFINITIONS: Sequence[ValueDefinition] = [
 GROUP_DEFINITIONS: Sequence[GroupDefinition] = [
     GroupDefinition(
         id="openness_change",
-        title="Openness to Change",
+        title="Открытость изменениям",
         value_ids=["SD", "ST", "HE"],
         interpretations=_interp(
             [
-                "Prefers predictability and externally guided plans.",
-                "Leans to stability with some room for novelty.",
-                "Balances structure with selective exploration.",
-                "Energized by autonomy, novelty, and enjoyment.",
-                "Strong change appetite; add guardrails for follow-through.",
+                "Предпочитает предсказуемость и внешние планы.",
+                "Склонен к стабильности, но оставляет место новизне.",
+                "Балансирует структуру и выборочные исследования.",
+                "Заряжает автономия, новизна и удовольствие.",
+                "Высокая тяга к изменениям; ставьте ограничители для доведения дел.",
             ]
         ),
     ),
     GroupDefinition(
         id="self_enhancement",
-        title="Self-Enhancement",
+        title="Самоутверждение",
         value_ids=["AC", "PO"],
         interpretations=_interp(
             [
-                "Low drive for advancement or influence.",
-                "Modest growth focus; influence used sparingly.",
-                "Steady achievement and influence when needed.",
-                "Clear ambition and readiness to lead.",
-                "High status/influence motive; balance with collaboration.",
+                "Низкий драйв к продвижению или влиянию.",
+                "Умеренный рост; влияние используется выборочно.",
+                "Стабильные достижения и влияние при необходимости.",
+                "Явная амбиция и готовность вести.",
+                "Сильный мотив статуса и влияния; балансируйте сотрудничеством.",
             ]
         ),
     ),
     GroupDefinition(
         id="conservation",
-        title="Conservation",
+        title="Сохранение",
         value_ids=["SEC", "CO", "TR"],
         interpretations=_interp(
             [
-                "Comfort with change outweighs need for stability/rituals.",
-                "Some guardrails, but flexibility stays high.",
-                "Balances stability, rules, and adaptation.",
-                "Values safety, order, and continuity.",
-                "Strong conservation; change needs strong justification.",
+                "Комфорт с переменами выше потребности в стабильности и ритуалах.",
+                "Есть защитные рамки, но гибкость высокая.",
+                "Балансирует стабильность, правила и адаптацию.",
+                "Ценит безопасность, порядок и преемственность.",
+                "Сильная ориентация на сохранение; изменения требуют обоснования.",
             ]
         ),
     ),
     GroupDefinition(
         id="self_transcendence",
-        title="Self-Transcendence",
+        title="Самотрансценденция",
         value_ids=["BE", "UN"],
         interpretations=_interp(
             [
-                "Focus stays close to personal goals.",
-                "Helps when possible; broader impact is secondary.",
-                "Balances self-interest with care for others.",
-                "Regularly considers others and societal effects.",
-                "Strong service/impact lens guiding choices.",
+                "Фокус остаётся близко к личным целям.",
+                "Помогает, когда возможно; широкий эффект вторичен.",
+                "Балансирует личные интересы и заботу о других.",
+                "Регулярно учитывает других и общественные эффекты.",
+                "Сильная ориентация на сервис и влияние, задающая выбор.",
             ]
         ),
     ),
@@ -455,4 +459,4 @@ class SvsEngine:
         for band in BANDS:
             if band.contains(percent):
                 return band
-        return Band("unknown", "Unknown", 0, 100, True, True)
+        return Band("unknown", "Неизвестно", 0, 100, True, True)

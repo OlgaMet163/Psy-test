@@ -26,14 +26,15 @@ from bot.utils.plot import (
 start_router = Router(name="start")
 
 WELCOME_TEXT = (
-    "Welcome 🔮\n\n"
-    "This bot includes three assessments:\n"
+    "Добро пожаловать! 🔮\n\n"
+    "<b>Этот бот предлагает 3 психологических теста:</b>\n"
     "• HEXACO\n"
-    "• Schwartz Value Survey\n"
+    "• Ценностный опросник Шварца (SVS)\n"
     "• Hogan DSUSI-SF\n\n"
-    "All three take about 15–20 minutes total. Answer based on your actual behavior over the last "
-    "2–3 months. You’ll get a detailed comment about you and scale visualizations. You can pause "
-    "any time—results stay saved and you can request them again via the menu buttons."
+    "Все три суммарно занимают ~15–20 минут. Отвечайте, исходя из того, какое поведение "
+    "характерно для вас в последние 2–3 месяца. После завершения тестов вы получите текстовые "
+    "выводы о себе и графики по метрикам.\n\nПри прохождении теста можно делать паузы — "
+    "ответы сохраняются, результаты всегда доступны в меню."
 )
 
 WELCOME_GIF_PATH = Path(__file__).resolve().parent.parent / "assets" / "welcome.gif"
@@ -42,16 +43,19 @@ HEXACO_RESULTS_COMMANDS = {
     "результаты hexaco",
     "hexaco results",
     "📊 hexaco results",
+    "📊 результаты hexaco",
 }
 HOGAN_RESULTS_COMMANDS = {
     "результаты hogan",
     "hogan results",
     "📊 hogan results",
+    "📊 результаты hogan",
 }
 SVS_RESULTS_COMMANDS = {
     "результаты svs",
     "svs results",
     "📊 svs results",
+    "📊 результаты svs",
 }
 RESET_COMMANDS = {"/reset", "/cancel", "reset", "cancel", "сброс"}
 HEXACO_ORDER = (
@@ -78,7 +82,7 @@ async def handle_start(message: Message) -> None:
 async def handle_show_hexaco_results(message: Message) -> None:
     storage = dependencies.storage_gateway
     if not storage:
-        await message.answer("Storage is unavailable, please try again later.")
+        await message.answer("Хранилище недоступно, попробуйте позже.")
         return
     user_id = message.from_user.id
     hexaco_ready = await _has_results(user_id, "HEXACO")
@@ -93,7 +97,7 @@ async def handle_show_hexaco_results(message: Message) -> None:
     radar_results = _order_hexaco_for_radar(public_results)
     if not public_results:
         await message.answer(
-            "No HEXACO results yet. Run the assessment first.",
+            "Результатов HEXACO пока нет. Сначала пройдите тест.",
             reply_markup=main_menu_keyboard(False, hogan_ready, svs_ready),
         )
         return
@@ -106,7 +110,7 @@ async def handle_show_hexaco_results(message: Message) -> None:
     if radar_path:
         await message.answer_photo(
             FSInputFile(radar_path),
-            caption="<b>HEXACO radar</b>",
+            caption="<b>Диаграмма HEXACO</b>",
         )
     await message.answer(
         format_results_message(public_results),
@@ -123,7 +127,7 @@ async def handle_show_hexaco_results(message: Message) -> None:
 async def handle_show_hogan_results(message: Message) -> None:
     storage = dependencies.storage_gateway
     if not storage:
-        await message.answer("Storage is unavailable, please try again later.")
+        await message.answer("Хранилище недоступно, попробуйте позже.")
         return
     user_id = message.from_user.id
     hexaco_ready = await _has_results(user_id, "HEXACO")
@@ -133,7 +137,7 @@ async def handle_show_hogan_results(message: Message) -> None:
     report = await storage.fetch_latest_hogan_report(message.from_user.id)
     if not report or not report.scales:
         await message.answer(
-            "No Hogan results yet. Complete the assessment first.",
+            "Результатов Hogan пока нет. Сначала пройдите тест.",
             reply_markup=main_menu_keyboard(hexaco_ready, False, svs_ready),
         )
         return
@@ -152,18 +156,18 @@ async def handle_show_hogan_results(message: Message) -> None:
         logging.exception("Failed to build Hogan radar: %s", exc)
         radar_path = None
     if not chunks:
-        chunks = ["No Hogan results yet."]
+        chunks = ["Результатов Hogan пока нет."]
     if radar_path:
         await message.answer_photo(
             FSInputFile(radar_path),
-            caption="<b>Hogan DSUSI-SF radar</b>",
+            caption="<b>Диаграмма Hogan DSUSI-SF</b>",
         )
     for chunk in chunks:
         await message.answer(chunk)
     if keyboard:
-        await message.answer("Need Hogan insights?", reply_markup=keyboard)
+        await message.answer("Расширенные выводы Hogan:", reply_markup=keyboard)
     await message.answer(
-        "Back to menu anytime.",
+        "В любое время можно вернуться в меню.",
         reply_markup=main_menu_keyboard(hexaco_ready, hogan_ready, svs_ready),
     )
     if radar_path:
@@ -188,7 +192,7 @@ async def handle_reset(message: Message, state) -> None:
     hexaco_ready = await _has_results(message.from_user.id, "HEXACO")
     hogan_ready = await _has_results(message.from_user.id, "HOGAN")
     svs_ready = await _has_results(message.from_user.id, "SVS")
-    await message.answer("History cleared.")
+    await message.answer("История очищена.")
     await _send_welcome(message, hexaco_ready, hogan_ready, svs_ready)
 
 
@@ -196,7 +200,7 @@ async def handle_reset(message: Message, state) -> None:
 async def handle_show_svs_results(message: Message) -> None:
     storage = dependencies.storage_gateway
     if not storage:
-        await message.answer("Storage is unavailable, please try again later.")
+        await message.answer("Хранилище недоступно, попробуйте позже.")
         return
     user_id = message.from_user.id
     hexaco_ready = await _has_results(user_id, "HEXACO")
@@ -212,7 +216,7 @@ async def handle_show_svs_results(message: Message) -> None:
     radar_results = _order_svs_for_radar(public_results)
     if not public_results:
         await message.answer(
-            "No SVS results yet. Run the assessment first.",
+            "Результатов SVS пока нет. Сначала пройдите тест.",
             reply_markup=main_menu_keyboard(hexaco_ready, hogan_ready, False),
         )
         return
@@ -227,7 +231,7 @@ async def handle_show_svs_results(message: Message) -> None:
     if radar_path:
         await message.answer_photo(
             FSInputFile(radar_path),
-            caption="<b>SVS radar</b>",
+            caption="<b>Диаграмма SVS</b>",
         )
     await message.answer(
         format_svs_results_message(value_results, group_results),

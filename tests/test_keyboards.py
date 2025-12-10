@@ -10,9 +10,9 @@ def test_main_menu_keyboard_only_starts():
     rows = _texts(kbd)
     assert len(rows) == 1
     assert rows[0] == [
-        "🚀 Start HEXACO",
-        "🚀 Start Hogan",
-        "🚀 Start SVS",
+        "🚀 Начать HEXACO",
+        "🚀 Начать Hogan",
+        "🚀 Начать SVS",
     ]
 
 
@@ -21,6 +21,6 @@ def test_main_menu_keyboard_with_results():
     rows = _texts(kbd)
     # 3 pairs (results/restart) over two columns => 3 rows
     assert len(rows) == 3
-    assert ["📊 HEXACO results", "🔁 Restart HEXACO"] in rows
-    assert ["📊 Hogan results", "🔁 Restart Hogan"] in rows
-    assert ["📊 SVS results", "🔁 Restart SVS"] in rows
+    assert ["📊 Результаты HEXACO", "🔁 Перепройти HEXACO"] in rows
+    assert ["📊 Результаты Hogan", "🔁 Перепройти Hogan"] in rows
+    assert ["📊 Результаты SVS", "🔁 Перепройти SVS"] in rows

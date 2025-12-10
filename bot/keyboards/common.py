@@ -4,67 +4,74 @@ from aiogram.types import InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMar
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
 HEXACO_FREQUENCY_OPTIONS = [
-    (5, "Almost always"),
-    (4, "Often"),
-    (3, "Sometimes"),
-    (2, "Rarely"),
-    (1, "Almost never"),
+    (5, "Почти всегда"),
+    (4, "Часто"),
+    (3, "Иногда"),
+    (2, "Редко"),
+    (1, "Почти никогда"),
 ]
 HEXACO_STRENGTH_OPTIONS = [
-    (5, "Very strongly"),
-    (4, "Strongly"),
-    (3, "Somewhat"),
-    (2, "Slightly"),
-    (1, "Not at all"),
+    (5, "Очень сильно"),
+    (4, "Сильно"),
+    (3, "Умеренно"),
+    (2, "Слабо"),
+    (1, "Совсем нет"),
 ]
 HEXACO_COMFORT_OPTIONS = [
-    (5, "Very comfortable"),
-    (4, "Comfortable"),
-    (3, "Neutral"),
-    (2, "Somewhat uneasy"),
-    (1, "Very uncomfortable"),
+    (5, "Очень комфортно"),
+    (4, "Комфортно"),
+    (3, "Нейтрально"),
+    (2, "Слегка некомфортно"),
+    (1, "Очень некомфортно"),
 ]
 HEXACO_EASE_OPTIONS = [
-    (5, "Very easy"),
-    (4, "Easy"),
-    (3, "Manageable"),
-    (2, "Somewhat hard"),
-    (1, "Very hard"),
+    (5, "Очень легко"),
+    (4, "Легко"),
+    (3, "По-разному"),
+    (2, "Сложновато"),
+    (1, "Очень сложно"),
 ]
 HEXACO_LIKELIHOOD_OPTIONS = [
-    (5, "Very likely"),
-    (4, "Likely"),
-    (3, "Sometimes"),
-    (2, "Unlikely"),
-    (1, "Very unlikely"),
+    (5, "Очень вероятно"),
+    (4, "Вероятно"),
+    (3, "Иногда"),
+    (2, "Маловероятно"),
+    (1, "Крайне маловероятно"),
 ]
 HEXACO_SPEED_OPTIONS = [
-    (5, "Immediately"),
-    (4, "Quickly"),
-    (3, "After a pause"),
-    (2, "Slowly"),
-    (1, "Rarely reset"),
+    (5, "Сразу"),
+    (4, "Быстро"),
+    (3, "После паузы"),
+    (2, "Медленно"),
+    (1, "Редко восстанавливаюсь"),
 ]
 HEXACO_RELIABILITY_OPTIONS = [
-    (5, "Always"),
-    (4, "Mostly"),
-    (3, "About half the time"),
-    (2, "Occasionally"),
-    (1, "Rarely"),
+    (5, "Всегда"),
+    (4, "Чаще всего"),
+    (3, "Примерно половину времени"),
+    (2, "Иногда"),
+    (1, "Редко"),
+]
+HEXACO_EFFORT_OPTIONS = [
+    (5, "Легко"),
+    (4, "Скорее легко"),
+    (3, "Придётся уговаривать"),
+    (2, "Сложно"),
+    (1, "Крайне сложно"),
 ]
 HEXACO_PREFERENCE_OPTIONS = [
-    (5, "Prefer observing a lot"),
-    (4, "Prefer observing"),
-    (3, "Depends on context"),
-    (2, "Prefer speaking sooner"),
-    (1, "Want to speak right away"),
+    (5, "Предпочитаю долго наблюдать"),
+    (4, "Предпочитаю наблюдать"),
+    (3, "По-разному"),
+    (2, "Хочу высказаться скорее"),
+    (1, "Хочу говорить сразу"),
 ]
 HEXACO_IMPACT_OPTIONS = [
-    (5, "Huge impact"),
-    (4, "Strong impact"),
-    (3, "Moderate impact"),
-    (2, "Small impact"),
-    (1, "No impact"),
+    (5, "Очень сильное влияние"),
+    (4, "Сильное влияние"),
+    (3, "Умеренное влияние"),
+    (2, "Небольшое влияние"),
+    (1, "Нет влияния"),
 ]
 
 HEXACO_DEFAULT_OPTIONS = HEXACO_FREQUENCY_OPTIONS
@@ -80,38 +87,38 @@ HEXACO_CUSTOM_OPTIONS: Dict[int, Sequence[tuple[int, str]]] = {
     14: HEXACO_LIKELIHOOD_OPTIONS,
     15: HEXACO_SPEED_OPTIONS,
     17: HEXACO_RELIABILITY_OPTIONS,
-    19: HEXACO_RELIABILITY_OPTIONS,
+    19: HEXACO_EFFORT_OPTIONS,
     23: HEXACO_IMPACT_OPTIONS,
 }
 
 HOGAN_OPTIONS = [
-    (5, "Very often"),
-    (4, "Often"),
-    (3, "Sometimes"),
-    (2, "Rarely"),
-    (1, "Never"),
+    (5, "Очень часто"),
+    (4, "Часто"),
+    (3, "Иногда"),
+    (2, "Редко"),
+    (1, "Никогда"),
 ]
 
 HOGAN_LABELS = {value: label for value, label in HOGAN_OPTIONS}
 
 SVS_OPTIONS = [
-    (1, "Not at all true of me"),
-    (2, "Rarely true of me"),
-    (3, "Occasionally true of me"),
-    (4, "Sometimes true of me"),
-    (5, "Often true of me"),
-    (6, "Usually true of me"),
-    (7, "Very true of me"),
+    (1, "Совсем не про меня"),
+    (2, "Редко про меня"),
+    (3, "Иногда про меня"),
+    (4, "Бывает похоже"),
+    (5, "Часто про меня"),
+    (6, "Обычно про меня"),
+    (7, "Точно про меня"),
 ]
 
 ATLAS_DOMAINS = [
-    ("lifestyle", "Lifestyle"),
-    ("health", "Health"),
-    ("romantic", "Romantic"),
-    ("friendships", "Friendships"),
-    ("hobbies", "Hobbies"),
-    ("sports", "Sports"),
-    ("business", "Business"),
+    ("lifestyle", "Образ жизни"),
+    ("health", "Здоровье"),
+    ("romantic", "Отношения"),
+    ("friendships", "Дружба"),
+    ("hobbies", "Хобби"),
+    ("sports", "Спорт"),
+    ("business", "Бизнес"),
 ]
 ATLAS_DOMAIN_LABELS = {key: title for key, title in ATLAS_DOMAINS}
 
@@ -161,12 +168,12 @@ def hogan_insights_keyboard(trait_ids: Sequence[str]) -> InlineKeyboardMarkup:
     for domain_key in ordered_domain_keys:
         title = ATLAS_DOMAIN_LABELS[domain_key]
         builder.button(text=title, callback_data=f"hogan:atlas:{domain_key}")
-    builder.button(text="Career", callback_data=f"hogan:career:{payload}")
+    builder.button(text="Карьера", callback_data=f"hogan:career:{payload}")
     builder.button(
         text=ATLAS_DOMAIN_LABELS["business"],
         callback_data="hogan:atlas:business",
     )
-    builder.button(text="Coaching", callback_data=f"hogan:coach:{payload}")
+    builder.button(text="Кураторам", callback_data=f"hogan:coach:{payload}")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -182,33 +189,33 @@ def main_menu_keyboard(
     # Start buttons — одной строкой, упорядочены: HEXACO, Hogan, SVS.
     start_buttons: list[KeyboardButton] = []
     if not has_hexaco_results:
-        start_buttons.append(KeyboardButton(text=f"{start_emoji} Start HEXACO"))
+        start_buttons.append(KeyboardButton(text=f"{start_emoji} Начать HEXACO"))
     if not has_hogan_results:
-        start_buttons.append(KeyboardButton(text=f"{start_emoji} Start Hogan"))
+        start_buttons.append(KeyboardButton(text=f"{start_emoji} Начать Hogan"))
     if not has_svs_results:
-        start_buttons.append(KeyboardButton(text=f"{start_emoji} Start SVS"))
+        start_buttons.append(KeyboardButton(text=f"{start_emoji} Начать SVS"))
     if start_buttons:
         builder.row(*start_buttons)
 
     # Results / Restart pairs per test
     if has_hexaco_results:
         builder.row(
-            KeyboardButton(text=f"{results_emoji} HEXACO results"),
-            KeyboardButton(text=f"{restart_emoji} Restart HEXACO"),
+            KeyboardButton(text=f"{results_emoji} Результаты HEXACO"),
+            KeyboardButton(text=f"{restart_emoji} Перепройти HEXACO"),
         )
     if has_hogan_results:
         builder.row(
-            KeyboardButton(text=f"{results_emoji} Hogan results"),
-            KeyboardButton(text=f"{restart_emoji} Restart Hogan"),
+            KeyboardButton(text=f"{results_emoji} Результаты Hogan"),
+            KeyboardButton(text=f"{restart_emoji} Перепройти Hogan"),
         )
     if has_svs_results:
         builder.row(
-            KeyboardButton(text=f"{results_emoji} SVS results"),
-            KeyboardButton(text=f"{restart_emoji} Restart SVS"),
+            KeyboardButton(text=f"{results_emoji} Результаты SVS"),
+            KeyboardButton(text=f"{restart_emoji} Перепройти SVS"),
         )
 
     return builder.as_markup(
-        resize_keyboard=True, input_field_placeholder="Select action"
+        resize_keyboard=True, input_field_placeholder="Выберите действие"
     )
 
 

@@ -42,16 +42,18 @@ HOGAN_TEXT_TRIGGERS = {
     "hogan",
     "🚀 start hogan",
     "🔁 restart hogan",
+    "🚀 начать hogan",
+    "🔁 перепройти hogan",
 }
 ATLAS_DOMAIN_TITLES = {
-    "business": "Hogan business",
-    "friendships": "Hogan friendships",
-    "hobbies": "Hogan hobbies",
-    "romantic": "Hogan romantic",
-    "lifestyle": "Hogan lifestyle",
-    "health": "Hogan health",
-    "sports": "Hogan sports",
-    "career": "Hogan career",
+    "business": "Hogan: бизнес",
+    "friendships": "Hogan: дружба",
+    "hobbies": "Hogan: хобби",
+    "romantic": "Hogan: отношения",
+    "lifestyle": "Hogan: образ жизни",
+    "health": "Hogan: здоровье",
+    "sports": "Hogan: спорт",
+    "career": "Hogan: карьера",
 }
 ATLAS_DOMAIN_KEYS = set(ATLAS_DOMAIN_TITLES.keys())
 _DOMAIN_PREFIX_PATTERN = re.compile(r"^- \*\*[^*]+\*\*\s*:?", re.IGNORECASE)
@@ -74,11 +76,11 @@ async def start_hogan(message: Message, state: FSMContext) -> None:
     if current_state:
         if str(current_state).startswith("HoganStates"):
             await message.answer(
-                "Hogan is already in progress. Continue answering with the buttons below."
+                "Hogan уже идёт. Продолжайте отвечать с помощью кнопок ниже."
             )
             return
         await message.answer(
-            "Another assessment is already in progress. Finish it or send /reset."
+            "Сейчас идёт другой тест. Завершите его или отправьте /reset."
         )
         return
     engine = _ensure_engine()
@@ -86,7 +88,7 @@ async def start_hogan(message: Message, state: FSMContext) -> None:
     await state.set_state(HoganStates.answering)
     await state.update_data(index=0, answers={}, order=order)
     await message.answer(
-        "Hogan DSUSI-SF: think about the last 2–3 months under pressure and answer from practice.",
+        "Hogan DSUSI-SF: вспомните последние 2–3 месяца под давлением и отвечайте, как это было на практике.",
         reply_markup=ReplyKeyboardRemove(),
     )
     await _send_question(message, engine, order, 0)
@@ -102,19 +104,19 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
     answers: Dict[int, int] = state_data.get("answers", {})
     order: List[int] = state_data.get("order") or list(range(engine.total_questions()))
     if index >= len(order):
-        await callback.answer("Answers already completed.", show_alert=True)
+        await callback.answer("Ответы уже заполнены.", show_alert=True)
         return
     statement = engine.get_statement(order[index])
 
     try:
         raw_value = int(callback.data.split(":")[1])
     except (ValueError, IndexError):
-        await callback.answer("Could not parse the answer.", show_alert=True)
+        await callback.answer("Не удалось распознать ответ.", show_alert=True)
         return
     answers[statement.id] = raw_value
 
     await state.update_data(index=index + 1, answers=answers)
-    await callback.answer("Saved ✅")
+    await callback.answer("Сохранено ✅")
     try:
         await callback.message.delete()
     except Exception:
@@ -166,18 +168,18 @@ async def handle_atlas_domain(callback: CallbackQuery) -> None:
 
 
 def build_hogan_results_chunks(report: HoganReport, limit: int = 3500) -> List[str]:
-    blocks: List[str] = ["Hogan DSUSI-SF results:"]
-    im_percent = _mean_to_percent(report.impression_management)
-    im_threshold_mean = 4.2
-    im_threshold_percent = _mean_to_percent(im_threshold_mean)
+    blocks: List[str] = ["Результаты Hogan DSUSI-SF:"]
+    im_percent = _im_percent(report.impression_management)
+    im_threshold_mean = 0.8  # доля максимальных ответов (>=80%)
+    im_threshold_percent = _im_percent(im_threshold_mean)
     im_flag = report.impression_management >= im_threshold_mean
-    im_line = f"Impression Management: {im_percent}%"
+    im_line = f"Управление впечатлением: {im_percent}%"
     if im_flag:
         im_line += " ⚠️"
     blocks.append(im_line)
     if im_flag:
         blocks.append(
-            f"IM ≥ {im_threshold_percent}% suggests impression management; treat very low derailer scores cautiously."
+            f"IM ≥ {im_threshold_percent}% может говорить о социально-желательных ответах; трактуйте низкие шкалы осторожно."
         )
     ordered_scales = sorted(report.scales, key=lambda item: item.percent, reverse=True)
     for scale in ordered_scales:
@@ -203,7 +205,7 @@ async def _send_question(
     statement = engine.get_statement(order[index])
     total = len(order)
     await message.answer(
-        f"Question {index + 1}/{total}\n\n{statement.text}",
+        f"Вопрос {index + 1}/{total}\n\n{statement.text}",
         reply_markup=build_hogan_keyboard(CALLBACK_PREFIX),
     )
 
@@ -239,21 +241,21 @@ async def _finish(
         svs_has_results = await storage.has_results(callback.from_user.id, "SVS")
 
     if not chunks:
-        chunks = ["No Hogan results yet."]
+        chunks = ["Результатов Hogan пока нет."]
     if radar_path:
         await callback.message.answer_photo(
             FSInputFile(radar_path),
-            caption="<b>Hogan DSUSI-SF radar</b>",
+            caption="<b>Диаграмма Hogan DSUSI-SF</b>",
         )
     for chunk in chunks:
         await callback.message.answer(chunk)
     if keyboard:
         await callback.message.answer(
-            "Need Hogan insights?",
+            "Расширенные выводы Hogan:",
             reply_markup=keyboard,
         )
     await callback.message.answer(
-        "Back to the menu or pick another test whenever you want.",
+        "Можно вернуться в меню или выбрать другой тест в любой момент.",
         reply_markup=main_menu_keyboard(hexaco_has_results, True, svs_has_results),
     )
     if radar_path:
@@ -269,11 +271,11 @@ async def _send_insight(callback: CallbackQuery, context: str) -> None:
     try:
         payload = callback.data.split(":", 2)[2]
     except IndexError:
-        await callback.answer("Unable to parse request.", show_alert=True)
+        await callback.answer("Не удалось обработать запрос.", show_alert=True)
         return
     trait_ids = [trait for trait in payload.split(INSIGHTS_SEPARATOR) if trait]
     if not trait_ids:
-        await callback.answer("No data for insights.", show_alert=True)
+        await callback.answer("Нет данных для пояснений.", show_alert=True)
         return
 
     sections: List[str] = []
@@ -294,11 +296,13 @@ async def _send_insight(callback: CallbackQuery, context: str) -> None:
                 sections.append(atlas_text)
 
     if not sections:
-        await callback.answer("No text found for these scales.", show_alert=True)
+        await callback.answer("Нет текста для этих шкал.", show_alert=True)
         return
 
-    context_label = "Coaching" if context == "coaching" else "Career"
-    message_text = f"{context_label}: top-scale excerpts\n\n" + "\n\n".join(sections)
+    context_label = "Коучинг" if context == "coaching" else "Карьера"
+    message_text = f"{context_label}: выдержки по высоким шкалам\n\n" + "\n\n".join(
+        sections
+    )
     await _send_text_chunks(callback.message, _split_text(message_text))
     await callback.answer()
 
@@ -484,18 +488,18 @@ def _select_top_traits(scales: Sequence[HoganScaleResult]) -> List[str]:
 
 
 def _build_im_result(report: HoganReport) -> HoganScaleResult:
-    percent = _mean_to_percent(report.impression_management)
-    im_threshold_percent = _mean_to_percent(4.2)
+    percent = _im_percent(report.impression_management)
+    im_threshold_percent = 80.0
     return HoganScaleResult(
         scale_id="IM",
-        title="Impression Management",
+        title="Управление впечатлением",
         hds_label="IM",
         mean_score=report.impression_management,
         percent=percent,
         level_id="im",
-        level_label="Impression Management",
+        level_label="Управление впечатлением",
         interpretation=(
-            f"Honesty check for the protocol (≥{im_threshold_percent}% may indicate impression management)."
+            f"Доля максимальных («идеальных») ответов на проверочные пункты (≥{im_threshold_percent}% может указывать на управление впечатлением)."
         ),
         visibility="internal",
     )
@@ -513,6 +517,10 @@ def _order_hogan_for_radar(
 
 def _mean_to_percent(mean_score: float) -> float:
     return round(((mean_score - 1) / 4) * 100, 2)
+
+
+def _im_percent(mean_score: float) -> float:
+    return round(mean_score * 100, 2)
 
 
 def _combine_blocks(blocks: Sequence[str], limit: int = 3500) -> List[str]:

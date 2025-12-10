@@ -57,100 +57,108 @@ class HexacoResult:
 
 STATEMENTS: List[Statement] = [
     Statement(
-        1, "How often do you state your real priorities early in a collaboration?"
+        1,
+        "Как часто вы заранее озвучиваете свои реальные приоритеты в совместной работе?",
     ),
     Statement(
         2,
-        "How often do you keep your real priorities private until you see where others are leaning?",
+        "Как часто вы держите свои истинные мотивы при себе, пока не поймёте позицию других?",
     ),
     Statement(
         3,
-        "When rules are clear, how strongly do you prefer they be applied consistently to everyone?",
+        "Когда правила понятны, насколько важно для вас, чтобы их применяли одинаково ко всем?",
     ),
     Statement(
         4,
-        "When rules are vague, how comfortable are you using the gray area to improve your outcome?",
+        "Когда правила расплывчаты, насколько комфортно вам использовать «серую зону» для собственной выгоды?",
     ),
     Statement(
         5,
-        "Before something important, how often do you mentally rehearse what could go wrong?",
+        "Перед важным делом как часто вы мысленно проигрываете, что может пойти не так?",
     ),
     Statement(
-        6, "Once you have a plan, how easily can you stop revisiting it in your head?"
+        6, "Когда план готов, насколько легко перестать прокручивать его в голове?"
     ),
     Statement(
         7,
-        "How strongly do you feel drawn into other people's highs/lows when you work closely together?",
+        "Насколько сильно на вас влияют эмоциональные подъёмы и спады других при тесной работе?",
     ),
     Statement(
         8,
-        "How easy is it for you to keep relationships purely functional without emotional carryover?",
+        "Насколько просто для вас держать отношения сугубо рабочими, не внося эмоциональную составляющую?",
     ),
     Statement(
         9,
-        "How comfortable are you initiating a conversation with someone high-status you don't know well?",
+        "Насколько комфортно вам начинать разговор с незнакомцем, который обладает более высоким статусом?",
     ),
     Statement(
-        10, "In new groups, how much do you prefer to observe first and speak later?"
+        10,
+        "В новых группах насколько вы предпочитаете сперва наблюдать, а говорить и проявляться позже?",
     ),
     Statement(
-        11, "How often does your enthusiasm show in your voice/pace/expressiveness?"
+        11,
+        "Как часто ваш энтузиазм слышен в голосе, темпе, выразительности?",
     ),
     Statement(
-        12, "How often do you intentionally keep your energy and expressiveness muted?"
+        12,
+        "Как часто вы намеренно снижаете свою эмоциональность и выразительность?",
     ),
     Statement(
         13,
-        "How easy is it for you to stay composed when someone is slow or repeats the same issue?",
+        "Насколько легко сохранять спокойствие, если кто-то медлит или повторяет одно и то же?",
     ),
     Statement(
         14,
-        "When things are inefficient, how likely is irritation to leak into your tone?",
+        "Когда появляются проблемы и трудности, насколько вероятно, что ваше раздражение будет слышно в голосе?",
     ),
     Statement(
         15,
-        "After someone owns a mistake and fixes it, how quickly do you reset with them?",
+        "Если человек признал ошибку и исправил её, как быстро вы возвращаете прежнее отношение к нему?",
     ),
     Statement(
         16,
-        'Even after a repair, how often do you stay guarded and keep a "mental note"?',
+        "Когда человек исправил свою ошибку, как часто вы всё равно остаетесь настороже и принимаете эту ошибку во внимание?",
     ),
     Statement(
         17,
-        "How consistently do you rely on systems (calendar/lists/checkpoints) to stay on track?",
+        "Насколько часто вы пользуетесь упорядочиванием (планер/список задач/календарь) в повседневной жизни?",
     ),
     Statement(
-        18, "How often do you keep everything in your head and sort it out as you go?"
+        18,
+        "Как часто вы держите всё в голове и разбираетесь по ходу дела?",
     ),
     Statement(
         19,
-        "When a task is tedious, how reliably do you still complete it without bargaining with yourself?",
+        "Если задача скучная, насколько сложно вам всё равно завершить её, не уговаривая себя?",
     ),
     Statement(
-        20, "How often do you need urgency (deadline/pressure) to finish dull tasks?"
+        20,
+        "Как часто вам нужна срочность (дедлайн/давление), чтобы завершить скучные задачи?",
     ),
     Statement(
         21,
-        "How often do you dig into underlying principles rather than just doing what works?",
+        "Как часто вы «закапываетесь» в принципы, подробности и логику процесса вместо того, чтобы делать по готовой схеме?",
     ),
     Statement(
-        22, 'How often do you avoid deep dives and prefer "just tell me the steps"?'
+        22,
+        "Как часто вы предпочитаете <i>«просто скажите, что делать»</i> глубокому погружению в процесс?",
     ),
     Statement(
         23,
-        "How much do aesthetics (layout, design, presentation) affect your satisfaction with an outcome?",
+        "Насколько на вашу удовлетворённость влияет эстетика (оформление, подача)?",
     ),
     Statement(
-        24, "How often do you treat aesthetics as irrelevant as long as it functions?"
+        24,
+        "Как часто вы считаете, что эстетика вещи неважна, если она работает, как надо?",
     ),
 ]
 
 BANDS: Sequence[Band] = [
-    Band("very_low", "Very low", 0, 13, min_inclusive=True),
-    Band("low", "Low", 13, 31),
-    Band("medium", "Medium", 31, 68),
-    Band("high", "High", 68, 87),
-    Band("very_high", "Very high", 87, 100),
+    Band("very_low", "Очень низкий", 0, 13, min_inclusive=True),
+    Band("low", "Низкий", 13, 31),
+    Band("medium", "Средний", 31, 68),
+    Band("high", "Высокий", 68, 87),
+    Band("very_high", "Очень высокий", 87, 100),
 ]
 
 
@@ -165,7 +173,7 @@ def _interp(public: bool, levels: List[str]) -> Dict[str, str]:
 DOMAINS: Sequence[DomainDefinition] = [
     DomainDefinition(
         id="honesty_humility",
-        title="Honesty-Humility",
+        title="Честность-скромность",
         visibility="public",
         items=[
             DomainItem(1),
@@ -176,17 +184,17 @@ DOMAINS: Sequence[DomainDefinition] = [
         interpretations=_interp(
             True,
             [
-                "Very low Honesty-Humility signals a transactional mindset—useful for hard bargaining, yet it can trigger distrust quickly.",
-                "Low scores show pragmatic self-protection. You stay focused on outcomes but may appear calculating or guarded.",
-                "Mid-range indicates situational transparency: you can switch between openness and realism, though signals might seem mixed.",
-                "High Honesty-Humility builds trust effortlessly; just watch that you do not give away leverage or boundaries by default.",
-                "Very high scores highlight principled, altruistic behavior. People rely on your ethics, but others may overuse your goodwill.",
+                "Человек склонен ставить личную выгоду выше правил и договорённостей. Может идти на обходные пути или использовать других ради результата. Быстро теряет доверие окружения; риск — репутационные потери и конфликты из-за восприятия манипулятивности.",
+                "Самоинтерес заметен, человек торгуется и тщательно защищает свои интересы. Может казаться расчётливым и осторожным, доверие формируется медленно. Риск — люди читают это как закрытость или недоверие; плюс — способность держать фокус на результате и не отдавать рычаги без нужды.",
+                "Гибко балансирует открытость и осторожность. Может быть прямым или сдержанным в зависимости от контекста и людей. Обычно сохраняет рабочее доверие, но сигнал, который посылает, может колебаться: кто-то увидит прагматика, кто-то — партнёра.",
+                "Ставит честность и равные правила высоко; избегает лишних преимуществ. Вокруг такого человека проще строить устойчивое доверие, он поддерживает прозрачность процессов. Риск — иногда упускает личные выгоды или действует слишком прямолинейно там, где нужна гибкость.",
+                "Принципиален и бескорыстен, готов поступиться выгодой ради справедливости. Создаёт безопасную, предсказуемую среду, усиливает доверие команды. Риск — может привлекать тех, кто пользуется его альтруизмом, и сам перегружаться обязательствами.",
             ],
         ),
     ),
     DomainDefinition(
         id="neurotism",
-        title="Neurotism",
+        title="Нейротизм",
         visibility="public",
         items=[
             DomainItem(5),
@@ -197,17 +205,17 @@ DOMAINS: Sequence[DomainDefinition] = [
         interpretations=_interp(
             True,
             [
-                "Very low Neurotism means calm and steady under pressure; just watch for blind spots around other people's emotional needs.",
-                "Low Neurotism keeps composure with minimal turbulence. Build quick self-checks so unspoken stress does not accumulate.",
-                "Mid-range Neurotism balances sensitivity with resilience—expect mood swings here and there, and plan simple recovery rituals.",
-                "High Neurotism signals heightened vigilance and emotional charge. Use structure, body anchors, and reality checks to stay grounded.",
-                "Very high Neurotism brings deep empathy but also faster overwhelm. Protect sleep, pacing, and social support so intensity remains useful.",
+                "Человек с предельно низким уровнем Невротизма эмоционально устойчивый; он редко испытывает стресс или тревогу даже в сложных ситуациях. Такие индивиды обладают высокой способностью справляться с давлением окружающей среды; они сохраняют спокойствие даже при возникновении проблем. Риск — можно недооценивать угрозы и сигналы тревоги у других.",
+                "Человек с низким уровнем Невротизма обычно спокоен, но иногда может испытывать лёгкие колебания настроения или беспокойство в стрессовых ситуациях. Он умеет справляться со своими эмоциями, хотя порой ему требуется время для восстановления после напряжённых моментов. Риск — стресс может накапливаться незаметно.",
+                "Человек со средним уровнем Невротизма имеет нормальный уровень эмоциональной стабильности; он может испытывать стресс или тревогу время от времени, но умеет справляться с этими эмоциями благодаря здоровым механизмам копинга (например, занятия спортом или хобби).",
+                "Человек с высоким уровнем Невротизма часто испытывает тревогу или негативные эмоции; ему бывает сложно справляться с давлением окружающей среды или стрессовыми ситуациями. Это может приводить к повышенной чувствительности к критике или конфликтам с другими людьми. Риск — хроническое напряжение и эмоциональное выгорание.",
+                "Человек с очень высоким уровнем Невротизма постоянно находится под воздействием сильного стресса или тревоги; у него могут возникать проблемы с эмоциональной регуляцией (например, частые перепады настроения). Такие индивиды могут страдать от различных психосоматических заболеваний из-за постоянного напряжения. Риск — выраженные психосоматические реакции и потребность в поддержке.",
             ],
         ),
     ),
     DomainDefinition(
         id="extraversion",
-        title="Extraversion",
+        title="Экстраверсия",
         visibility="public",
         items=[
             DomainItem(9),
@@ -218,17 +226,17 @@ DOMAINS: Sequence[DomainDefinition] = [
         interpretations=_interp(
             True,
             [
-                "Very low Extraversion favors focused solo work; invest extra effort in signaling availability to new partners.",
-                "Low scores mean selective social energy. Thoughtful tempo helps, yet cold signals can slow trust.",
-                "Mid-range flexes between outreach and recharge. Just clarify your cadence so others know when to engage.",
-                "High Extraversion fuels momentum and influence; remember to leave airtime for quiet contributors.",
-                "Very high scores indicate constant visibility and drive. Schedule recovery to avoid dominating or burning out.",
+                "Человек с таким результатом обычно проявляет сильную интровертированность. Он предпочитает проводить время в одиночестве или в узком кругу близких людей. Социальные взаимодействия могут вызывать дискомфорт и усталость. Часто такие люди могут быть глубоко рефлексивными и сосредоточенными на своих внутренних переживаниях. Риск — социальная изоляция и упущенные возможности.",
+                "Человек с таким результатом может быть сдержанным и предпочитать небольшие компании, избегая больших собраний и шумных мероприятий. Он может быть дружелюбным, но не стремится к активному общению. В социальных ситуациях он может чувствовать себя неуверенно, но способен поддерживать разговор с близкими людьми. Риск — неуверенность в новых социальных ситуациях и замкнутость.",
+                "Человек с таким результатом обладает сбалансированным уровнем экстраверсии. Он может наслаждаться общением и проводить время с другими, но также ценит моменты уединения. Такой человек легко адаптируется к различным социальным ситуациям и может быть как активным участником, так и наблюдателем.",
+                "Человек с таким результатом энергичен, общителен и любит находиться в центре внимания. Он активно ищет новые знакомства и получает удовольствие от общения с разными людьми. Такие люди часто обладают хорошими навыками коммуникации и могут вдохновлять окружающих своим оптимизмом. Риск — перегруз общением и нехватка времени на восстановление.",
+                "Человек с таким результатом является настоящим центром внимания, его энергия притягивает людей. Он постоянно ищет новые возможности для общения и взаимодействия, часто проявляет лидерские качества. Такие люди могут быть харизматичными и способны вдохновлять других на действия. Риск — доминирование, переоценка сил и эмоциональное выгорание.",
             ],
         ),
     ),
     DomainDefinition(
         id="agreeableness",
-        title="Agreeableness",
+        title="Доброжелательность",
         visibility="public",
         items=[
             DomainItem(13),
@@ -239,17 +247,17 @@ DOMAINS: Sequence[DomainDefinition] = [
         interpretations=_interp(
             True,
             [
-                "Very low Agreeableness means tough negotiating strength—great for defining boundaries, risky if empathy is absent.",
-                "Low scores keep emotions in check and focus on logic. Add a quick acknowledgment of feelings to maintain rapport.",
-                "Mid-range balances support with realism. Monitor how fast you toggle so expectations stay clear.",
-                "High Agreeableness calms conflict and brings warmth; guard your bandwidth so yeses remain intentional.",
-                "Very high scores mobilize communities around care. Pair it with firm limits to prevent emotional overload.",
+                "Человек с таким результатом может проявлять недоверие к другим, быть критичным и эгоистичным. У него могут возникать трудности в построении доверительных отношений, он склонен к манипуляциям ради достижения своих целей. Часто такие люди могут восприниматься как холодные или безразличные. Риск — закрепить репутацию жёсткого и недоверчивого.",
+                "Человек с таким результатом может быть сдержанным в своих проявлениях доброты и поддержки. Он иногда ставит свои интересы выше интересов других, что может приводить к конфликтам в отношениях. Однако он способен на сочувствие, особенно к близким людям. Риск — восприниматься как эгоцентричный.",
+                "Человек с таким результатом способен на сочувствие и поддержку, но также может быть критичным или требовательным к окружающим. У него есть баланс между заботой о других и заботой о себе; он понимает важность взаимопомощи, но не всегда готов жертвовать своими интересами.",
+                "Человек с таким результатом проявляет доброту, отзывчивость и готовность помочь другим. Он ценит гармонию в отношениях и стремится поддерживать позитивное взаимодействие с окружающими. Такие люди часто становятся опорой для друзей и семьи. Риск — жертвовать собственными интересами ради мира.",
+                "Человек исключительно доброжелателен, всегда готов прийти на помощь и поддержать других даже в сложных ситуациях. Его забота о других часто ставится выше собственных интересов; он может жертвовать своим временем ради благополучия окружающих. Риск — выгорание и то, что другие будут злоупотреблять его готовностью помогать.",
             ],
         ),
     ),
     DomainDefinition(
         id="conscientiousness",
-        title="Conscientiousness",
+        title="Добросовестность",
         visibility="public",
         items=[
             DomainItem(17),
@@ -260,17 +268,17 @@ DOMAINS: Sequence[DomainDefinition] = [
         interpretations=_interp(
             True,
             [
-                "Very low Conscientiousness favors improvisation and rapid pivots; set lightweight checkpoints so chaos stays useful.",
-                "Low scores value freedom of schedule. Watch recurring delays by adding simple external cues.",
-                "Mid-range blends planning with spontaneity. Double-check long projects where structure fades over time.",
-                "High Conscientiousness sustains quality and reliability; practice flexible re-planning for surprise events.",
-                "Very high scores reflect meticulous control. Great for standards, but perfectionism can squeeze recovery.",
+                "Такой человек может быть неряшливым, неорганизованным и склонным к импульсивному поведению. У него возникают трудности с выполнением обязательств; он часто откладывает дела на потом или забывает о них вовсе. Это может приводить к проблемам как в личной жизни, так и на работе. Риск — устойчивые провалы по срокам и качеству.",
+                "Такой человек иногда проявляет недостаток организованности и ответственности; он может не всегда следовать планам или завершать начатые дела. Его подход к жизни более спонтанный, что иногда приводит к негативным последствиям. Риск — накапливание незавершённых задач.",
+                "Такой человек демонстрирует умеренный уровень ответственности; он способен выполнять обязательства, но иногда может откладывать дела на потом или терять фокус на задачах. Он умеет планировать свои действия, но не всегда придерживается намеченного плана.",
+                "Такой человек очень ответственный, организованный и целеустремлённый; он тщательно планирует свои действия и стремится достигать поставленных целей. Такие люди также обычно надёжны в работе и личной жизни; их можно считать образцом добросовестности. Риск — излишняя требовательность к себе и другим, возможна перегрузка.",
+                "Такой человек является образцом добросовестности; он всегда выполняет свои обязательства на высоком уровне и обращает внимание на детали во всём, что делает. Его организованность вдохновляет окружающих; такие люди часто занимают руководящие позиции благодаря своей надёжности. Риск — перфекционизм и повышенная уязвимость к выгоранию.",
             ],
         ),
     ),
     DomainDefinition(
         id="openness",
-        title="Openness to Experience",
+        title="Открытость опыту",
         visibility="public",
         items=[
             DomainItem(21),
@@ -281,11 +289,11 @@ DOMAINS: Sequence[DomainDefinition] = [
         interpretations=_interp(
             True,
             [
-                "Very low Openness prizes proven playbooks. Build deliberate windows for new data so you do not miss emerging signals.",
-                "Low scores mean careful adoption of change. Let trusted peers curate experiments to shorten the learning curve.",
-                "Mid-range toggles between standards and novelty. Clarify which mode you are in to avoid half-finished ideas.",
-                "High Openness fuels creativity and reframing; pair it with decision cadences to land commitments.",
-                "Very high scores chase new inputs constantly. Anchor on a few priorities so iteration still ships.",
+                "Человек с таким показателем Открытости опыту предпочитает рутину и традиционные подходы; он не склонен к экспериментам или новым идеям, часто избегает изменений в своей жизни (например, новых хобби или путешествий). Такие люди могут быть консервативными в своих взглядах на жизнь. Риск — упустить инновации и возможности роста.",
+                "Человек с таким показателем Открытости опыту может быть консервативным в своих взглядах; он не всегда открыт для новых идей или опыта, предпочитая знакомое окружение и привычные занятия. Это может ограничивать его возможности для роста и развития. Риск — сложнее адаптироваться к переменам.",
+                "Человек с таким показателем Открытости опыту демонстрирует умеренную открытость; он готов рассмотреть новые идеи или опыт при условии их разумности и безопасности для себя. Такой человек ценит традиции, но также понимает важность изменений для личностного роста.",
+                "Человек с таким показателем Открытости опыту любознателен, открыт для новых идей и опытов; он стремится исследовать мир вокруг себя через различные виды деятельности (например, путешествия или изучение новых культур). Такие индивиды часто имеют широкий круг интересов. Риск — переключение внимания может замедлять завершение дел.",
+                "Человек с таким показателем Открытости опыту является истинным искателем приключений; он активно ищет новые впечатления, идеи и возможности для самовыражения через творчество (например, искусство) или необычные хобби (например, экстремальные виды спорта). Его оригинальность выделяет его среди других людей. Риск — импульсивные решения, частые смены фокуса или повышенная тяга к риску.",
             ],
         ),
     ),
@@ -359,4 +367,4 @@ class HexacoEngine:
         for band in BANDS:
             if band.contains(percent):
                 return band
-        return Band("unknown", "Unknown", 0, 100, True, True)
+        return Band("unknown", "Неизвестно", 0, 100, True, True)
