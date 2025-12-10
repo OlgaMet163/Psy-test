@@ -93,7 +93,7 @@ def build_hogan_radar(scales: Sequence[HoganScaleResult]) -> Path:
 
     # Заголовок.
     ax.set_title(
-        "Шкалы Hogan DSUSI-SF", color="white", fontsize=16, fontweight="bold", pad=20
+        "Поведение в стрессе", color="white", fontsize=16, fontweight="bold", pad=20
     )
 
     fig.tight_layout()

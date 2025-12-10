@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# flake8: noqa: E501
+
 import random
 import re
 from itertools import combinations
@@ -13,20 +15,14 @@ from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
 from bot import dependencies
 from bot.keyboards import (
-    HOGAN_LABELS,
     build_hogan_keyboard,
+    get_hogan_label,
     hogan_insights_keyboard,
     main_menu_keyboard,
 )
-from bot.services.hogan import (
-    HoganReport,
-    HoganScaleResult,
-    SCALE_DEFINITIONS,
-    IM_ITEMS,
-)
+from bot.services.hogan import HoganReport, HoganScaleResult, SCALE_DEFINITIONS
 from aiogram.types import FSInputFile
 from bot.utils.text import build_progress_bar
-from bot.utils.plot import build_hogan_radar
 from bot.utils.plot import build_hogan_radar
 
 hogan_router = Router(name="hogan")
@@ -85,11 +81,13 @@ async def start_hogan(message: Message, state: FSMContext) -> None:
         return
     engine = _ensure_engine()
     order = _build_question_order(engine)
-    await state.set_state(HoganStates.answering)
-    await state.update_data(index=0, answers={}, order=order)
-    await message.answer(
-        "Hogan DSUSI-SF: вспомните последние 2–3 месяца под давлением и отвечайте, как это было на практике.",
+    intro = await message.answer(
+        "<b>Hogan DSUSI-SF</b>: вспомните стрессовые ситуации за последние 2–3 месяца и отвечайте исходя из того, как действуете в сложных обстоятельствах.",
         reply_markup=ReplyKeyboardRemove(),
+    )
+    await state.set_state(HoganStates.answering)
+    await state.update_data(
+        index=0, answers={}, order=order, intro_msg_id=intro.message_id
     )
     await _send_question(message, engine, order, 0)
 
@@ -103,6 +101,7 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
     index = state_data.get("index", 0)
     answers: Dict[int, int] = state_data.get("answers", {})
     order: List[int] = state_data.get("order") or list(range(engine.total_questions()))
+    intro_msg_id: int | None = state_data.get("intro_msg_id")
     if index >= len(order):
         await callback.answer("Ответы уже заполнены.", show_alert=True)
         return
@@ -115,7 +114,7 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
         return
     answers[statement.id] = raw_value
 
-    await state.update_data(index=index + 1, answers=answers)
+    await state.update_data(index=index + 1, answers=answers, intro_msg_id=intro_msg_id)
     await callback.answer("Сохранено ✅")
     try:
         await callback.message.delete()
@@ -129,11 +128,11 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
             test_name="HOGAN",
             statement_id=statement.id,
             raw_value=raw_value,
-            label=HOGAN_LABELS.get(raw_value, ""),
+            label=get_hogan_label(statement.id, raw_value),
         )
 
     if index + 1 >= len(order):
-        await _finish(callback, state, answers, engine)
+        await _finish(callback, state, answers, engine, intro_msg_id=intro_msg_id)
         return
 
     await _send_question(callback.message, engine, order, index + 1)
@@ -168,12 +167,12 @@ async def handle_atlas_domain(callback: CallbackQuery) -> None:
 
 
 def build_hogan_results_chunks(report: HoganReport, limit: int = 3500) -> List[str]:
-    blocks: List[str] = ["Результаты Hogan DSUSI-SF:"]
+    blocks: List[str] = []
     im_percent = _im_percent(report.impression_management)
     im_threshold_mean = 0.8  # доля максимальных ответов (>=80%)
     im_threshold_percent = _im_percent(im_threshold_mean)
     im_flag = report.impression_management >= im_threshold_mean
-    im_line = f"Управление впечатлением: {im_percent}%"
+    im_line = f"Социально-одобряемые ответы: {im_percent}%"
     if im_flag:
         im_line += " ⚠️"
     blocks.append(im_line)
@@ -185,7 +184,7 @@ def build_hogan_results_chunks(report: HoganReport, limit: int = 3500) -> List[s
     for scale in ordered_scales:
         bar = build_progress_bar(scale.percent, scale.level_id)
         blocks.append(
-            f"• <b>{scale.title}</b> ({scale.hds_label}) — {scale.percent}% ({scale.level_label})\n"
+            f"• <b>{scale.title}</b> — {scale.percent}% ({scale.level_label})\n"
             f"{bar}\n"
             f"{scale.interpretation}"
         )
@@ -205,13 +204,17 @@ async def _send_question(
     statement = engine.get_statement(order[index])
     total = len(order)
     await message.answer(
-        f"Вопрос {index + 1}/{total}\n\n{statement.text}",
-        reply_markup=build_hogan_keyboard(CALLBACK_PREFIX),
+        f"<b>Утверждение {index + 1}/{total}</b>\n\n{statement.text}",
+        reply_markup=build_hogan_keyboard(CALLBACK_PREFIX, statement_id=statement.id),
     )
 
 
 async def _finish(
-    callback: CallbackQuery, state: FSMContext, answers: Dict[int, int], engine
+    callback: CallbackQuery,
+    state: FSMContext,
+    answers: Dict[int, int],
+    engine,
+    intro_msg_id: int | None = None,
 ) -> None:
     report = engine.calculate(answers)
     ordered_scales = sorted(report.scales, key=lambda item: item.percent, reverse=True)
@@ -239,6 +242,15 @@ async def _finish(
         await storage.save_results(callback.from_user.id, "HOGAN", payload)
         hexaco_has_results = await storage.has_results(callback.from_user.id, "HEXACO")
         svs_has_results = await storage.has_results(callback.from_user.id, "SVS")
+
+    # удалить стартовое сообщение, если сохранили id
+    if intro_msg_id:
+        try:
+            await callback.bot.delete_message(
+                chat_id=callback.from_user.id, message_id=intro_msg_id
+            )
+        except Exception:
+            pass
 
     if not chunks:
         chunks = ["Результатов Hogan пока нет."]

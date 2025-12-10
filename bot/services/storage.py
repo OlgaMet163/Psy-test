@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import datetime as dt
 from pathlib import Path
+
+# flake8: noqa: E501
 import csv
 from typing import Iterable, List, Optional
 
@@ -177,7 +179,7 @@ class StorageGateway:
             mean_score = round((percent / 100) * 4 + 1, 2)
             scale_id = row["domain_id"]
             if scale_id == "IM":
-                impression = mean_score
+                impression = round(percent / 100, 2)
                 continue
             scales.append(
                 HoganScaleResult(

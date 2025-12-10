@@ -1,5 +1,7 @@
 from typing import Dict, Sequence
 
+# flake8: noqa: E501
+
 from aiogram.types import InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
@@ -97,15 +99,24 @@ HEXACO_CUSTOM_OPTIONS: Dict[int, Sequence[tuple[int, str]]] = {
     23: HEXACO_IMPACT_OPTIONS,
 }
 
-HOGAN_OPTIONS = [
-    (5, "Очень часто"),
+HOGAN_DEFAULT_OPTIONS = [
+    (5, "Почти всегда"),
     (4, "Часто"),
     (3, "Иногда"),
     (2, "Редко"),
-    (1, "Никогда"),
+    (1, "Почти никогда"),
 ]
 
-HOGAN_LABELS = {value: label for value, label in HOGAN_OPTIONS}
+HOGAN_IM_OPTIONS = [
+    (5, "Точно про меня"),
+    (4, "Скорее про меня"),
+    (3, "Затрудняюсь с ответом"),
+    (2, "Скорее не про меня"),
+    (1, "Точно не про меня"),
+]
+
+HOGAN_LABELS_DEFAULT = {value: label for value, label in HOGAN_DEFAULT_OPTIONS}
+HOGAN_LABELS_IM = {value: label for value, label in HOGAN_IM_OPTIONS}
 
 SVS_OPTIONS = [
     (5, "Точно про меня"),
@@ -145,8 +156,11 @@ def _get_hexaco_options(statement_id: int | None) -> Sequence[tuple[int, str]]:
     return HEXACO_CUSTOM_OPTIONS.get(statement_id, HEXACO_DEFAULT_OPTIONS)
 
 
-def build_hogan_keyboard(prefix: str) -> InlineKeyboardMarkup:
-    return _build_answer_keyboard(prefix, HOGAN_OPTIONS)
+def build_hogan_keyboard(
+    prefix: str, statement_id: int | None = None
+) -> InlineKeyboardMarkup:
+    options = _get_hogan_options(statement_id)
+    return _build_answer_keyboard(prefix, options)
 
 
 def build_svs_keyboard(prefix: str) -> InlineKeyboardMarkup:
@@ -155,6 +169,12 @@ def build_svs_keyboard(prefix: str) -> InlineKeyboardMarkup:
 
 def get_svs_label(value: int) -> str:
     label_map = {option_value: label for option_value, label in SVS_OPTIONS}
+    return label_map.get(value, "")
+
+
+def get_hogan_label(statement_id: int | None, value: int) -> str:
+    options = _get_hogan_options(statement_id)
+    label_map = {option_value: label for option_value, label in options}
     return label_map.get(value, "")
 
 
@@ -231,3 +251,13 @@ def _build_answer_keyboard(
         builder.button(text=label, callback_data=f"{prefix}:{value}")
     builder.adjust(1)
     return builder.as_markup()
+
+
+def _get_hogan_options(statement_id: int | None) -> Sequence[tuple[int, str]]:
+    if statement_id is None:
+        return HOGAN_DEFAULT_OPTIONS
+    return (
+        HOGAN_IM_OPTIONS
+        if statement_id in {34, 35, 36, 37, 38}
+        else HOGAN_DEFAULT_OPTIONS
+    )
