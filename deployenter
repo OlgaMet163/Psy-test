@@ -1,26 +1,44 @@
-Шаги для заливки изменений на сервер:
-1) Подключиться по SSH (на Mac/локально):
-   ssh deploy@138.249.8.161
+Шаги деплоя через GitHub (production):
 
-2) Перейти в проект:
-   cd ~/bots/Psy-test
+1) SSH на сервер:
+   ssh deploy@138.249.8.161   
 
-3) Активировать venv:
+2) В каталог проекта:
+   cd /home/deploy/bots/Psy-test
+
+3) Проверить ветку/репо:
+   git status -sb
+   git remote -v
+   git log -1 --oneline
+   # если нужен другой origin: git remote set-url origin <url>
+
+4) Обновить код с GitHub (пример для main):
+   git fetch --all --prune
+   git checkout main
+   git reset --hard origin/main
+   # если фича-ветка: заменить main на имя ветки
+
+5) Починить/пересоздать venv (если битый или отсутствует):
+   sudo apt update
+   sudo apt install -y python3-venv   # если venv не стоит
+   rm -rf .venv
+   python3 -m venv .venv
    source .venv/bin/activate
-
-4) Обновить код из репозитория:
-   git pull
-
-5) При изменении зависимостей:
+   pip install --upgrade pip
    pip install -r requirements.txt
 
-6) Перезапустить сервис (применить новый код):
+6) Проверить сервисный файл (путь должен совпадать):
+   cat /etc/systemd/system/psybot.service
+   # WorkingDirectory=/home/deploy/bots/Psy-test
+   # ExecStart=/home/deploy/bots/Psy-test/.venv/bin/python -m bot.main
+
+7) Применить и перезапустить:
+   sudo systemctl daemon-reload
    sudo systemctl restart psybot
 
-7) Проверить статус и логи:
+8) Проверить статус и логи:
    sudo systemctl status psybot
-   journalctl -u psybot -n 50
+   journalctl -u psybot -n 50 -f   # Ctrl+C для выхода
 
-8) Выйти с сервера:
+9) Выход:
    exit
-

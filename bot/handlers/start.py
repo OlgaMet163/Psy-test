@@ -34,6 +34,7 @@ from bot.utils.plot import (
     build_hogan_radar,
     build_hexaco_radar,
     build_svs_radar,
+    build_dark_triad_radar,
 )
 
 start_router = Router(name="start")
@@ -101,6 +102,7 @@ HEXACO_ORDER = (
 )
 HOGAN_ORDER = [scale.id for scale in SCALE_DEFINITIONS]
 SVS_VALUE_ORDER = ("SD", "ST", "HE", "AC", "PO", "SEC", "CO", "TR", "BE", "UN")
+DARK_TRIAD_ORDER = ("dt_machiavellianism", "dt_narcissism", "dt_psychopathy")
 
 
 @start_router.message(CommandStart())
@@ -402,6 +404,7 @@ async def handle_view_participant_email(message: Message, state: FSMContext) -> 
     await handle_show_hexaco_results(
         message, user_id=user_id, include_hh=True  # type: ignore[arg-type]
     )
+    await _send_dark_triad_results(message, user_id=user_id)
     await state.set_state(StartStates.choosing_test)
     menu = await _send_test_menu(message, participant=False, prefix="Выбери действие:")
     await state.update_data(test_menu_message_id=menu.message_id)
@@ -634,6 +637,29 @@ def _order_hexaco_for_radar(
     )
 
 
+def _order_dark_triad_for_radar(results: list[HexacoResult]) -> list[HexacoResult]:
+    order_index = {domain_id: idx for idx, domain_id in enumerate(DARK_TRIAD_ORDER)}
+    filtered = [r for r in results if r.domain_id in order_index]
+    return sorted(filtered, key=lambda item: order_index.get(item.domain_id, 99))
+
+
+def _filter_dark_triad(results: list[HexacoResult]) -> list[HexacoResult]:
+    return [r for r in results if getattr(r, "domain_id", "") in DARK_TRIAD_ORDER]
+
+
+def _format_dark_triad_results(results: list[HexacoResult]) -> str:
+    if not results:
+        return "Результатов Тёмной триады пока нет."
+    ordered = sorted(results, key=lambda item: item.percent, reverse=True)
+    lines = []
+    for r in ordered:
+        bar = build_progress_bar(r.percent, r.band_id)
+        lines.append(
+            f"• <b>{r.title}</b>: {r.percent}% ({r.band_label})\n{bar}\n{r.interpretation}"
+        )
+    return "\n\n".join(lines)
+
+
 def _order_hogan_for_radar(scales) -> list:
     order_index = {scale_id: idx for idx, scale_id in enumerate(HOGAN_ORDER)}
     return sorted(
@@ -650,6 +676,39 @@ def _order_svs_for_radar(results: list[SvsResult]) -> list[SvsResult]:
         values, key=lambda item: order_index.get(item.domain_id, len(SVS_VALUE_ORDER))
     )
     return ordered_values + others
+
+
+async def _send_dark_triad_results(
+    message: Message, user_id: int
+) -> None:
+    storage = dependencies.storage_gateway
+    if not storage:
+        await message.answer("Результаты Тёмной триады недоступны.")
+        return
+    results = await storage.fetch_latest_hexaco_results(user_id)
+    triad = _filter_dark_triad(results)
+    if not triad:
+        await message.answer("Результатов Тёмной триады пока нет.")
+        return
+    ordered = _order_dark_triad_for_radar(triad)
+    radar_path = None
+    try:
+        radar_path = build_dark_triad_radar(ordered)
+    except Exception as exc:  # pragma: no cover
+        logging.exception("Failed to build Dark Triad radar: %s", exc)
+        radar_path = None
+    text = _format_dark_triad_results(ordered)
+    if radar_path:
+        await message.answer_photo(
+            FSInputFile(radar_path),
+            caption="<b>Тёмная триада</b>",
+        )
+    await message.answer(text)
+    if radar_path:
+        try:
+            radar_path.unlink(missing_ok=True)
+        except Exception:
+            pass
 
 
 async def _send_test_menu(

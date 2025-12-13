@@ -185,6 +185,74 @@ def build_hexaco_radar(results: Sequence[HexacoResult]) -> Path:
     return tmp_path
 
 
+def build_dark_triad_radar(results: Sequence[HexacoResult]) -> Path:
+    if not results:
+        raise ValueError("Нет результатов Тёмной триады для построения диаграммы.")
+    filtered = [r for r in results if r.visibility in {"public", "internal"}]
+    if not filtered:
+        raise ValueError("Нет доступных результатов Тёмной триады.")
+
+    labels = [res.title for res in filtered]
+    values = [max(0.0, min(100.0, res.percent)) for res in filtered]
+    angles = [n / float(len(labels)) * 2 * math.pi for n in range(len(labels))]
+    angles_closed = angles + angles[:1]
+    values_closed = values + values[:1]
+
+    face_color = "#1f2647"
+    polygon_color = "#000000"
+    point_palette = ["#f29f05", "#8a5be8", "#24c1f1"]
+
+    fig, ax = plt.subplots(subplot_kw={"polar": True}, figsize=(8, 8))
+    fig.patch.set_facecolor(face_color)
+    ax.set_facecolor(face_color)
+    ax.set_theta_offset(math.pi / 2)
+    ax.set_theta_direction(-1)
+
+    ax.set_ylim(0, 100)
+    yticks = [0, 20, 40, 60, 80, 100]
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([f"{value}%" for value in yticks], color="white")
+
+    ax.grid(True, linestyle="--", linewidth=0.6, alpha=0.5, color="white")
+    ax.spines["polar"].set_color("white")
+
+    ax.set_xticks(angles_closed[:-1])
+    ax.set_xticklabels(labels, fontsize=11, color="white")
+
+    ax.plot(
+        angles_closed,
+        values_closed,
+        color=polygon_color,
+        linewidth=2,
+        linestyle="solid",
+    )
+    ax.fill(angles_closed, values_closed, color=polygon_color, alpha=0.4)
+
+    for idx, (angle, value) in enumerate(zip(angles, values)):
+        color = point_palette[idx % len(point_palette)]
+        ax.scatter(
+            angle,
+            value,
+            color=color,
+            s=80,
+            edgecolors="white",
+            linewidths=1,
+            zorder=3,
+        )
+
+    ax.set_title(
+        "Тёмная триада", color="white", fontsize=16, fontweight="bold", pad=20
+    )
+
+    fig.tight_layout()
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+    tmp_path = Path(tmp.name)
+    tmp.close()
+    fig.savefig(tmp_path, dpi=150)
+    plt.close(fig)
+    return tmp_path
+
+
 def build_svs_radar(results: Sequence[SvsResult]) -> Path:
     """Строит полярную диаграмму по ценностям SVS, возвращает путь к PNG."""
     if not results:

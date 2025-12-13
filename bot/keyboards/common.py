@@ -82,6 +82,27 @@ HEXACO_IMPACT_OPTIONS = [
     (2, "Небольшое влияние"),
     (1, "Нет влияния"),
 ]
+HEXACO_AVOID_OPTIONS = [
+    (5, "Всегда избегаю"),
+    (4, "Чаще избегаю"),
+    (3, "Иногда избегаю"),
+    (2, "Скорее не избегаю"),
+    (1, "Совсем не избегаю"),
+]
+HEXACO_DISTRESS_OPTIONS = [
+    (5, "Очень сильно"),
+    (4, "Сильно"),
+    (3, "Умеренно"),
+    (2, "Слабо"),
+    (1, "Почти не расстраиваюсь"),
+]
+HEXACO_STOP_RISK_OPTIONS = [
+    (5, "Полностью останавливает"),
+    (4, "Сильно останавливает"),
+    (3, "Иногда останавливает"),
+    (2, "Слабо останавливает"),
+    (1, "Не останавливает"),
+]
 
 HEXACO_DEFAULT_OPTIONS = HEXACO_FREQUENCY_OPTIONS
 HEXACO_CUSTOM_OPTIONS: Dict[int, Sequence[tuple[int, str]]] = {
@@ -97,6 +118,9 @@ HEXACO_CUSTOM_OPTIONS: Dict[int, Sequence[tuple[int, str]]] = {
     17: HEXACO_RELIABILITY_OPTIONS,
     19: HEXACO_EFFORT_OPTIONS,
     23: HEXACO_IMPORTANCE_OPTIONS,
+    26: HEXACO_AVOID_OPTIONS,
+    28: HEXACO_DISTRESS_OPTIONS,
+    30: HEXACO_STOP_RISK_OPTIONS,
 }
 
 HOGAN_DEFAULT_OPTIONS = [
