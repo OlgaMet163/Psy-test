@@ -96,7 +96,7 @@ HEXACO_CUSTOM_OPTIONS: Dict[int, Sequence[tuple[int, str]]] = {
     15: HEXACO_SPEED_OPTIONS,
     17: HEXACO_RELIABILITY_OPTIONS,
     19: HEXACO_EFFORT_OPTIONS,
-    23: HEXACO_IMPACT_OPTIONS,
+    23: HEXACO_IMPORTANCE_OPTIONS,
 }
 
 HOGAN_DEFAULT_OPTIONS = [
@@ -232,7 +232,7 @@ def build_main_inline_menu(
     # 1. Start buttons (для тестов без результатов)
     if not has_hexaco_results:
         builder.button(
-            text=f"{start_emoji} Начать HEXACO", callback_data="menu:start:hexaco"
+            text=f"{start_emoji} Начать Big Five", callback_data="menu:start:hexaco"
         )
     if not has_hogan_results:
         builder.button(
@@ -244,7 +244,7 @@ def build_main_inline_menu(
     # 2. Results buttons (для тестов с результатами)
     if has_hexaco_results:
         builder.button(
-            text=f"{results_emoji} Результаты HEXACO",
+            text=f"{results_emoji} Результаты Big Five",
             callback_data="menu:results:hexaco",
         )
     if has_hogan_results:
@@ -259,7 +259,7 @@ def build_main_inline_menu(
     # 3. Restart buttons (для тестов с результатами)
     if has_hexaco_results:
         builder.button(
-            text=f"{restart_emoji} Перепройти HEXACO",
+            text=f"{restart_emoji} Перепройти Big Five",
             callback_data="menu:restart:hexaco",
         )
     if has_hogan_results:

@@ -14,7 +14,7 @@ def test_inline_menu_only_starts():
     texts = _inline_texts(kbd)
     callbacks = _inline_callbacks(kbd)
     assert texts == [
-        "🚀 Начать HEXACO",
+        "🚀 Начать Big Five",
         "🚀 Начать Hogan",
         "🚀 Начать SVS",
     ]
@@ -31,10 +31,10 @@ def test_inline_menu_with_results():
     callbacks = _inline_callbacks(kbd)
     # порядок: стартов нет (все есть), затем результаты, затем перепройти
     assert texts == [
-        "📊 Результаты HEXACO",
+        "📊 Результаты Big Five",
         "📊 Результаты Hogan",
         "📊 Результаты SVS",
-        "🔁 Перепройти HEXACO",
+        "🔁 Перепройти Big Five",
         "🔁 Перепройти Hogan",
         "🔁 Перепройти SVS",
     ]

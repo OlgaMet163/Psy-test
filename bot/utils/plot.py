@@ -107,14 +107,14 @@ def build_hogan_radar(scales: Sequence[HoganScaleResult]) -> Path:
 
 
 def build_hexaco_radar(results: Sequence[HexacoResult]) -> Path:
-    """Строит полярную диаграмму по публичным шкалам HEXACO, возвращает путь к PNG."""
+    """Строит полярную диаграмму по публичным шкалам Big Five, возвращает путь к PNG."""
     if not results:
-        raise ValueError("Нет результатов HEXACO для построения диаграммы.")
+        raise ValueError("Нет результатов Big Five для построения диаграммы.")
 
     # Берём только публичные домены.
     filtered = [r for r in results if r.visibility == "public"]
     if not filtered:
-        raise ValueError("Нет публичных результатов HEXACO.")
+        raise ValueError("Нет публичных результатов Big Five.")
 
     labels = [res.title for res in filtered]
     values = [max(0.0, min(100.0, res.percent)) for res in filtered]
@@ -173,7 +173,7 @@ def build_hexaco_radar(results: Sequence[HexacoResult]) -> Path:
         )
 
     ax.set_title(
-        "Профиль HEXACO", color="white", fontsize=16, fontweight="bold", pad=20
+        "Профиль Big Five", color="white", fontsize=16, fontweight="bold", pad=20
     )
 
     fig.tight_layout()
@@ -204,7 +204,7 @@ def build_svs_radar(results: Sequence[SvsResult]) -> Path:
     scores_closed = scores + scores[:1]
 
     face_color = "#1f2647"
-    polygon_color = "#b14ba7"  # новый цвет, отличный от Hogan/HEXACO
+    polygon_color = "#b14ba7"  # новый цвет, отличный от Hogan/Big Five
     point_palette = [
         "#4dd0e1",
         "#f47b94",

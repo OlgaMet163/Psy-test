@@ -60,10 +60,10 @@ def _ensure_storage():
 async def start_hexaco(message: Message, state: FSMContext) -> None:
     current_state = await state.get_state()
     if current_state:
-        # Если уже в HEXACO — не перезапускаем, а просим продолжить.
+        # Если уже в Big Five — не перезапускаем, а просим продолжить.
         if str(current_state).startswith("HexacoStates"):
             await message.answer(
-                "HEXACO уже идёт. Продолжайте отвечать с помощью кнопок ниже."
+                "Big Five уже идёт. Продолжайте отвечать с помощью кнопок ниже."
             )
             return
         # Если другой тест — блокируем.
@@ -76,7 +76,10 @@ async def start_hexaco(message: Message, state: FSMContext) -> None:
     random.shuffle(order)
     await state.set_state(HexacoStates.answering)
     intro = await message.answer(
-        ("<b>HEXACO</b>: оценивайте утверждения, исходя из своего обычного поведения."),
+        (
+            "<b>Big Five</b>: оценивайте утверждения, исходя из своего обычного "
+            "поведения."
+        ),
         reply_markup=ReplyKeyboardRemove(),
     )
     await state.update_data(
@@ -146,8 +149,14 @@ async def _finish(
         key=lambda item: item.percent,
         reverse=True,
     )
-    radar_results = _order_hexaco_for_radar(public_results)
-    message_text = format_results_message(public_results)
+    visible_results = _filter_hexaco_domains(public_results, include_hh=False)
+    if not visible_results:
+        await callback.message.answer("Результатов Big Five пока нет.")
+        await state.clear()
+        return
+
+    radar_results = _order_hexaco_for_radar(visible_results, include_hh=False)
+    message_text = format_results_message(visible_results, include_hh=False)
     radar_path = None
     try:
         radar_path = build_hexaco_radar(radar_results)
@@ -165,7 +174,7 @@ async def _finish(
     if radar_path:
         await callback.message.answer_photo(
             FSInputFile(radar_path),
-            caption="<b>Диаграмма HEXACO</b>",
+            caption="<b>Диаграмма Big Five</b>",
         )
 
     # Удаляем вступительное сообщение, если оно устарело.
@@ -190,10 +199,13 @@ async def _finish(
     await state.clear()
 
 
-def format_results_message(results: List["HexacoResult"]) -> str:
-    if not results:
-        return "Результатов HEXACO пока нет."
-    ordered = sorted(results, key=lambda item: item.percent, reverse=True)
+def format_results_message(
+    results: List["HexacoResult"], include_hh: bool = False
+) -> str:
+    filtered = _filter_hexaco_domains(results, include_hh=include_hh)
+    if not filtered:
+        return "Результатов Big Five пока нет."
+    ordered = sorted(filtered, key=lambda item: item.percent, reverse=True)
     text_lines: list[str] = []
     for result in ordered:
         bar = build_progress_bar(result.percent, result.band_id)
@@ -205,8 +217,23 @@ def format_results_message(results: List["HexacoResult"]) -> str:
     return "\n\n".join(text_lines)
 
 
-def _order_hexaco_for_radar(results: List["HexacoResult"]) -> List["HexacoResult"]:
+def _order_hexaco_for_radar(
+    results: List["HexacoResult"], include_hh: bool = False
+) -> List["HexacoResult"]:
+    filtered = _filter_hexaco_domains(results, include_hh=include_hh)
+    if not filtered:
+        return []
     order_index = {domain_id: idx for idx, domain_id in enumerate(HEXACO_ORDER)}
     return sorted(
-        results, key=lambda item: order_index.get(item.domain_id, len(HEXACO_ORDER))
+        filtered, key=lambda item: order_index.get(item.domain_id, len(HEXACO_ORDER))
     )
+
+
+def _filter_hexaco_domains(
+    results: List["HexacoResult"], include_hh: bool = False
+) -> List["HexacoResult"]:
+    if include_hh:
+        return results
+    return [
+        result for result in results if getattr(result, "domain_id", "") != "honesty_humility"
+    ]

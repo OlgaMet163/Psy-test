@@ -1,0 +1,26 @@
+Шаги для заливки изменений на сервер:
+1) Подключиться по SSH (на Mac/локально):
+   ssh deploy@138.249.8.161
+
+2) Перейти в проект:
+   cd ~/bots/Psy-test
+
+3) Активировать venv:
+   source .venv/bin/activate
+
+4) Обновить код из репозитория:
+   git pull
+
+5) При изменении зависимостей:
+   pip install -r requirements.txt
+
+6) Перезапустить сервис (применить новый код):
+   sudo systemctl restart psybot
+
+7) Проверить статус и логи:
+   sudo systemctl status psybot
+   journalctl -u psybot -n 50
+
+8) Выйти с сервера:
+   exit
+

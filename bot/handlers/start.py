@@ -60,9 +60,9 @@ class StartStates(StatesGroup):
 WELCOME_TEXT = (
     "Добро пожаловать! 🔮\n\n"
     "<b>Этот бот предлагает 3 психологических теста:</b>\n"
-    "• HEXACO\n"
+    "• Пятифакторная модель характера (Big Five)\n"
     "• Ценностный опросник Шварца (SVS)\n"
-    "• Hogan DSUSI-SF\n\n"
+    "• Поведенческий стиль в стрессе (на базе Hogan)\n\n"
     "Все три суммарно занимают ~15–20 минут. Отвечайте, исходя из того, какое поведение "
     "характерно для вас в последние 2–3 месяца. После завершения тестов вы получите текстовые "
     "выводы о себе и графики по метрикам.\n\nПри прохождении теста можно делать паузы — "
@@ -72,10 +72,10 @@ WELCOME_TEXT = (
 WELCOME_GIF_PATH = Path(__file__).resolve().parent.parent / "assets" / "welcome.gif"
 
 HEXACO_RESULTS_COMMANDS = {
-    "результаты hexaco",
-    "hexaco results",
-    "📊 hexaco results",
-    "📊 результаты hexaco",
+    "результаты big five",
+    "big five results",
+    "📊 big five results",
+    "📊 результаты big five",
 }
 HOGAN_RESULTS_COMMANDS = {
     "результаты hogan",
@@ -254,8 +254,8 @@ async def handle_participant(callback: CallbackQuery, state: FSMContext) -> None
             pass
     await state.set_state(StartStates.waiting_participant_email)
     await callback.message.answer(
-        "Введи почту, которую используешь в проекте.\n"
-        "<b>Важно:</b> проверь введённый адрес на ошибки, чтобы мы могли идентифицировать тебя и отправить персонализированные результаты."
+        "Введите почту, которую используете/собираетесь использовать в проекте.\n"
+        "<b>Важно:</b> проверьте введённый адрес на ошибки, чтобы мы могли идентифицировать вас и отправить персонализированные результаты."
     )
     await callback.answer()
 
@@ -397,6 +397,11 @@ async def handle_view_participant_email(message: Message, state: FSMContext) -> 
     coach_sections = await _build_coach_sections(report)
     for section in coach_sections:
         await message.answer(section)
+
+    # Полный Big Five (6 черт) для сотрудника при поиске участника
+    await handle_show_hexaco_results(
+        message, user_id=user_id, include_hh=True  # type: ignore[arg-type]
+    )
     await state.set_state(StartStates.choosing_test)
     menu = await _send_test_menu(message, participant=False, prefix="Выбери действие:")
     await state.update_data(test_menu_message_id=menu.message_id)
@@ -404,7 +409,10 @@ async def handle_view_participant_email(message: Message, state: FSMContext) -> 
 
 @start_router.message(lambda m: m.text and m.text.lower() in HEXACO_RESULTS_COMMANDS)
 async def handle_show_hexaco_results(
-    message: Message, user_id: Optional[int] = None, email: Optional[str] = None
+    message: Message,
+    user_id: Optional[int] = None,
+    email: Optional[str] = None,
+    include_hh: bool = False,
 ) -> None:
     storage = dependencies.storage_gateway
     if not storage:
@@ -412,7 +420,7 @@ async def handle_show_hexaco_results(
         return
     target_user = await _resolve_user_id(user_id or message.from_user.id, email)
     if not target_user:
-        await message.answer("Результатов HEXACO пока нет.")
+        await message.answer("Результатов Big Five пока нет.")
         return
     results = await storage.fetch_latest_hexaco_results(target_user)
     public_results = sorted(
@@ -420,26 +428,27 @@ async def handle_show_hexaco_results(
         key=lambda item: item.percent,
         reverse=True,
     )
-    radar_results = _order_hexaco_for_radar(public_results)
-    if not public_results:
+    radar_results = _order_hexaco_for_radar(public_results, include_hh=include_hh)
+    if not radar_results:
         await message.answer(
-            "Результатов HEXACO пока нет. Сначала пройдите тест.",
+            "Результатов Big Five пока нет. Сначала пройдите тест.",
             reply_markup=None,
         )
         return
+    message_text = format_results_message(public_results, include_hh=include_hh)
     radar_path = None
     try:
         radar_path = build_hexaco_radar(radar_results)
     except Exception as exc:  # pragma: no cover
-        logging.exception("Failed to build HEXACO radar: %s", exc)
+        logging.exception("Failed to build Big Five radar: %s", exc)
         radar_path = None
     if radar_path:
         await message.answer_photo(
             FSInputFile(radar_path),
-            caption="<b>Диаграмма HEXACO</b>",
+            caption="<b>Диаграмма Big Five</b>",
         )
     await message.answer(
-        format_results_message(public_results),
+        message_text,
         reply_markup=None,
     )
     if radar_path:
@@ -609,10 +618,19 @@ async def _has_results(user_id: int, test_name: str) -> bool:
     return await storage.has_results(user_id, test_name)
 
 
-def _order_hexaco_for_radar(results: list[HexacoResult]) -> list[HexacoResult]:
+def _order_hexaco_for_radar(
+    results: list[HexacoResult], include_hh: bool = False
+) -> list[HexacoResult]:
+    filtered = (
+        results
+        if include_hh
+        else [
+            r for r in results if getattr(r, "domain_id", "") != "honesty_humility"
+        ]
+    )
     order_index = {domain_id: idx for idx, domain_id in enumerate(HEXACO_ORDER)}
     return sorted(
-        results, key=lambda item: order_index.get(item.domain_id, len(HEXACO_ORDER))
+        filtered, key=lambda item: order_index.get(item.domain_id, len(HEXACO_ORDER))
     )
 
 
