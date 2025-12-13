@@ -67,6 +67,12 @@ _REDUNDANT_STATEMENTS = {
 }
 
 
+async def _track_activity(user_id: int) -> None:
+    storage = dependencies.storage_gateway
+    if storage:
+        await storage.record_user_activity(user_id)
+
+
 class HoganStates(StatesGroup):
     answering = State()
 
@@ -74,6 +80,7 @@ class HoganStates(StatesGroup):
 @hogan_router.message(Command("hogan"))
 @hogan_router.message(lambda m: m.text and m.text.lower() in HOGAN_TEXT_TRIGGERS)
 async def start_hogan(message: Message, state: FSMContext) -> None:
+    await _track_activity(message.from_user.id)
     current_state = await state.get_state()
     if current_state:
         if str(current_state).startswith("HoganStates"):
@@ -102,6 +109,7 @@ async def start_hogan(message: Message, state: FSMContext) -> None:
     HoganStates.answering, F.data.startswith(f"{CALLBACK_PREFIX}:")
 )
 async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
     engine = _ensure_engine()
     state_data = await state.get_data()
     index = state_data.get("index", 0)
@@ -146,16 +154,19 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
 
 @hogan_router.callback_query(F.data.startswith("hogan:coach:"))
 async def handle_coaching_insight(callback: CallbackQuery) -> None:
+    await _track_activity(callback.from_user.id)
     await _send_insight(callback, "coaching")
 
 
 @hogan_router.callback_query(F.data.startswith("hogan:career:"))
 async def handle_career_insight(callback: CallbackQuery) -> None:
+    await _track_activity(callback.from_user.id)
     await _send_insight(callback, "career")
 
 
 @hogan_router.callback_query(F.data.startswith("hogan:atlas:"))
 async def handle_atlas_domain(callback: CallbackQuery) -> None:
+    await _track_activity(callback.from_user.id)
     try:
         domain = callback.data.split(":", 2)[2]
     except IndexError:

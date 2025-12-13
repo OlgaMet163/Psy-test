@@ -36,6 +36,12 @@ class SvsStates(StatesGroup):
     answering = State()
 
 
+async def _track_activity(user_id: int) -> None:
+    storage = dependencies.storage_gateway
+    if storage:
+        await storage.record_user_activity(user_id)
+
+
 def _ensure_engine():
     if dependencies.svs_engine is None:
         raise RuntimeError("SvsEngine is not initialized.")
@@ -49,6 +55,7 @@ def _ensure_storage():
 @svs_router.message(Command("svs"))
 @svs_router.message(lambda m: m.text and m.text.lower() in SVS_TEXT_TRIGGERS)
 async def start_svs(message: Message, state: FSMContext) -> None:
+    await _track_activity(message.from_user.id)
     current_state = await state.get_state()
     if current_state:
         if str(current_state).startswith("SvsStates"):
@@ -78,6 +85,7 @@ async def start_svs(message: Message, state: FSMContext) -> None:
     SvsStates.answering, F.data.startswith(f"{CALLBACK_PREFIX}:")
 )
 async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
     engine = _ensure_engine()
     state_data = await state.get_data()
     index = state_data.get("index", 0)

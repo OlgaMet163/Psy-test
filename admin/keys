@@ -1,0 +1,16 @@
+Команды бота
+
+- /start — стартовое приветствие и меню.
+- /reset, /cancel, reset, cancel, сброс — очистка истории и возврат в начало.
+- /teamswitch — перейти в режим сотрудника.
+- /oracleadmin — скрытая админ-команда (пароль 1337, панель Статистика/Выгрузка).
+
+Пароль для /oracleadmin: 1337
+
+- /hexaco, start hexaco, restart hexaco  — запустить/перезапустить Big Five.
+- /svs, start svs, restart svs — запустить/перезапустить SVS.
+- /hogan, start hogan, restart hogan — запустить/перезапустить Hogan.
+- big five results— показать результаты Big Five.
+- hogan results — показать результаты Hogan.
+- svs results — показать результаты SVS.
+

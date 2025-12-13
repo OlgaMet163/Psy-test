@@ -5,7 +5,7 @@ from pathlib import Path
 
 # flake8: noqa: E501
 import csv
-from typing import Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Sequence
 
 import aiosqlite
 
@@ -67,8 +67,35 @@ class StorageGateway:
                 )
                 """
             )
+            await db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_stats (
+                    user_id INTEGER PRIMARY KEY,
+                    first_seen TEXT NOT NULL,
+                    last_seen TEXT NOT NULL,
+                    undo_count INTEGER NOT NULL DEFAULT 0
+                )
+                """
+            )
             await db.commit()
+            await self._backfill_user_stats(db)
         self._initialized = True
+
+    async def _backfill_user_stats(self, db: aiosqlite.Connection) -> None:
+        # Заполняем user_stats по историческим данным, если там ещё пусто.
+        await db.execute(
+            """
+            INSERT OR IGNORE INTO user_stats (user_id, first_seen, last_seen, undo_count)
+            SELECT user_id, MIN(created_at), MAX(created_at), 0
+            FROM (
+                SELECT user_id, created_at FROM hexaco_answers
+                UNION ALL
+                SELECT user_id, created_at FROM hexaco_results
+            )
+            GROUP BY user_id
+            """
+        )
+        await db.commit()
 
     async def save_answer(
         self,
@@ -320,3 +347,229 @@ class StorageGateway:
             )
             rows = await cursor.fetchall()
         return rows
+
+    async def record_user_activity(
+        self, user_id: int, timestamp: dt.datetime | None = None
+    ) -> None:
+        """Фиксирует время первого/последнего посещения пользователя."""
+        await self.init()
+        ts = (timestamp or dt.datetime.now(dt.timezone.utc)).isoformat()
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                """
+                INSERT INTO user_stats (user_id, first_seen, last_seen, undo_count)
+                VALUES (?, ?, ?, 0)
+                ON CONFLICT(user_id)
+                DO UPDATE SET last_seen=excluded.last_seen
+                """,
+                (user_id, ts, ts),
+            )
+            await db.commit()
+
+    async def increment_undo(
+        self, user_id: int, timestamp: dt.datetime | None = None
+    ) -> None:
+        """Увеличивает счётчик нажатий «Назад» и обновляет last_seen."""
+        await self.init()
+        ts = (timestamp or dt.datetime.now(dt.timezone.utc)).isoformat()
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                """
+                INSERT INTO user_stats (user_id, first_seen, last_seen, undo_count)
+                VALUES (?, ?, ?, 1)
+                ON CONFLICT(user_id)
+                DO UPDATE SET
+                    last_seen=excluded.last_seen,
+                    undo_count=user_stats.undo_count + 1
+                """,
+                (user_id, ts, ts),
+            )
+            await db.commit()
+
+    async def fetch_admin_stats(
+        self, now: dt.datetime | None = None
+    ) -> Dict[str, float | int]:
+        """Возвращает агрегированную статистику для админ-панели."""
+        await self.init()
+        now = now or dt.datetime.now(dt.timezone.utc)
+        start_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        week_ago = now - dt.timedelta(days=7)
+
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute("SELECT COUNT(*) FROM user_stats")
+            total_users = (await cursor.fetchone() or [0])[0]
+
+            cursor = await db.execute(
+                "SELECT COUNT(*) FROM user_stats WHERE last_seen >= ?",
+                (start_today.isoformat(),),
+            )
+            today_users = (await cursor.fetchone() or [0])[0]
+
+            cursor = await db.execute(
+                "SELECT COUNT(*) FROM user_stats WHERE last_seen >= ?",
+                (week_ago.isoformat(),),
+            )
+            week_users = (await cursor.fetchone() or [0])[0]
+
+            cursor = await db.execute(
+                """
+                SELECT COUNT(DISTINCT user_id)
+                FROM hexaco_results
+                WHERE test_name = 'HEXACO'
+                """
+            )
+            finished_hexaco = (await cursor.fetchone() or [0])[0]
+
+            cursor = await db.execute(
+                """
+                SELECT COUNT(DISTINCT user_id)
+                FROM hexaco_results
+                WHERE test_name = 'SVS'
+                """
+            )
+            finished_svs = (await cursor.fetchone() or [0])[0]
+
+            cursor = await db.execute(
+                """
+                SELECT COUNT(DISTINCT user_id)
+                FROM hexaco_results
+                WHERE test_name = 'HOGAN'
+                """
+            )
+            finished_hogan = (await cursor.fetchone() or [0])[0]
+
+            cursor = await db.execute(
+                """
+                SELECT AVG(hr.percent)
+                FROM hexaco_results hr
+                JOIN (
+                    SELECT user_id, MAX(created_at) AS ts
+                    FROM hexaco_results
+                    WHERE test_name = 'HOGAN'
+                    GROUP BY user_id
+                ) latest ON latest.user_id = hr.user_id AND latest.ts = hr.created_at
+                WHERE hr.test_name = 'HOGAN' AND hr.domain_id = 'IM'
+                """
+            )
+            avg_im_row = await cursor.fetchone()
+            avg_bullshit = avg_im_row[0] if avg_im_row else None
+
+        return {
+            "total_users": total_users,
+            "today_users": today_users,
+            "week_users": week_users,
+            "finished_hexaco": finished_hexaco,
+            "finished_svs": finished_svs,
+            "finished_hogan": finished_hogan,
+            "avg_bullshit": round(avg_bullshit, 2) if avg_bullshit is not None else None,
+        }
+
+    async def export_users_csv(self, output_path: Path) -> Path:
+        """Формирует CSV по пользователям с результатами и статистикой."""
+        await self.init()
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        hexaco_domains = (
+            "honesty_humility",
+            "neurotism",
+            "extraversion",
+            "agreeableness",
+            "conscientiousness",
+            "openness",
+            "dt_machiavellianism",
+            "dt_narcissism",
+            "dt_psychopathy",
+        )
+        svs_values = ("SD", "ST", "HE", "AC", "PO", "SEC", "CO", "TR", "BE", "UN")
+        svs_groups = (
+            "group_openness_change",
+            "group_self_enhancement",
+            "group_conservation",
+            "group_self_transcendence",
+        )
+        hogan_scales = [definition.id for definition in SCALE_DEFINITIONS]
+
+        header = [
+            "tg_id",
+            "Date",
+            "Tests finished",
+            *hexaco_domains,
+            *svs_values,
+            *svs_groups,
+            *hogan_scales,
+            "Bullshit",
+            "Undo",
+        ]
+
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT user_id, first_seen, undo_count FROM user_stats ORDER BY first_seen"
+            )
+            users = await cursor.fetchall()
+
+            with output_path.open("w", newline="", encoding="utf-8") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(header)
+
+                for row in users:
+                    user_id = row["user_id"]
+                    first_seen = row["first_seen"]
+                    undo_count = row["undo_count"]
+
+                    hexaco_map = await self._fetch_latest_results_map(
+                        db, user_id, "HEXACO"
+                    )
+                    hogan_map = await self._fetch_latest_results_map(
+                        db, user_id, "HOGAN"
+                    )
+                    svs_map = await self._fetch_latest_results_map(db, user_id, "SVS")
+
+                    tests_finished = (
+                        "yes"
+                        if hexaco_map and hogan_map and svs_map
+                        else "no"
+                    )
+                    bullshit_percent = hogan_map.get("IM", "")
+
+                    row_values: List[Sequence[float | str | int]] = [
+                        [user_id],
+                        [first_seen.split("T")[0] if first_seen else ""],
+                        [tests_finished],
+                        [hexaco_map.get(key, "") for key in hexaco_domains],
+                        [svs_map.get(key, "") for key in svs_values],
+                        [svs_map.get(key, "") for key in svs_groups],
+                        [hogan_map.get(key, "") for key in hogan_scales],
+                        [bullshit_percent],
+                        [undo_count],
+                    ]
+
+                    flat: List[float | str | int] = []
+                    for chunk in row_values:
+                        flat.extend(chunk)
+                    writer.writerow(flat)
+
+        return output_path
+
+    async def _fetch_latest_results_map(
+        self, db: aiosqlite.Connection, user_id: int, test_name: str
+    ) -> Dict[str, float]:
+        cursor = await db.execute(
+            "SELECT MAX(created_at) FROM hexaco_results WHERE user_id = ? AND test_name = ?",
+            (user_id, test_name),
+        )
+        row = await cursor.fetchone()
+        if not row or row[0] is None:
+            return {}
+        ts = row[0]
+        cursor = await db.execute(
+            """
+            SELECT domain_id, percent
+            FROM hexaco_results
+            WHERE user_id = ? AND test_name = ? AND created_at = ?
+            """,
+            (user_id, test_name, ts),
+        )
+        rows = await cursor.fetchall()
+        return {domain_id: percent for domain_id, percent in rows}

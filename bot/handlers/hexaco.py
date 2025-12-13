@@ -45,6 +45,18 @@ class HexacoStates(StatesGroup):
     answering = State()
 
 
+async def _track_activity(user_id: int) -> None:
+    storage = dependencies.storage_gateway
+    if storage:
+        await storage.record_user_activity(user_id)
+
+
+async def _increment_undo(user_id: int) -> None:
+    storage = dependencies.storage_gateway
+    if storage:
+        await storage.increment_undo(user_id)
+
+
 def _ensure_engine():
     if dependencies.hexaco_engine is None:
         raise RuntimeError("HexacoEngine is not initialized.")
@@ -58,6 +70,7 @@ def _ensure_storage():
 @hexaco_router.message(Command("hexaco"))
 @hexaco_router.message(lambda m: m.text and m.text.lower() in HEXACO_TEXT_TRIGGERS)
 async def start_hexaco(message: Message, state: FSMContext) -> None:
+    await _track_activity(message.from_user.id)
     current_state = await state.get_state()
     if current_state:
         # Если уже в Big Five — не перезапускаем, а просим продолжить.
@@ -92,6 +105,7 @@ async def start_hexaco(message: Message, state: FSMContext) -> None:
     HexacoStates.answering, F.data.startswith(f"{CALLBACK_PREFIX}:")
 )
 async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
     engine = _ensure_engine()
     state_data = await state.get_data()
     index = state_data.get("index", 0)
@@ -158,6 +172,7 @@ async def _send_question(
 async def _go_prev_question(
     callback: CallbackQuery, state: FSMContext, engine
 ) -> None:
+    await _increment_undo(callback.from_user.id)
     state_data = await state.get_data()
     answers: Dict[int, int] = state_data.get("answers", {})
     order: List[int] = state_data.get("order") or list(range(engine.total_questions()))

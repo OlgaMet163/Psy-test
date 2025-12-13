@@ -1,0 +1,31 @@
+Как вернуть расширенные выводы Hogan (кнопки + текстовое сообщение)
+
+Текущее состояние:
+- В сценарии участника (handle_show_hogan_results) отключены кнопки «Расширенные выводы Hogan» и возврат в меню. Выводятся только диаграмма и текстовые блоки.
+
+Как включить обратно:
+1) В файле `bot/handlers/start.py` найти функцию `handle_show_hogan_results`.
+2) После построения `keyboard = build_hogan_results_keyboard(...)` (строку нужно вернуть, см. пункт 4) добавить блок отправки:
+   ```
+   if keyboard:
+       builder = InlineKeyboardMarkup(
+           inline_keyboard=[
+               *keyboard.inline_keyboard,
+               [InlineKeyboardButton(text="↩️ Вернуться в меню", callback_data="menu:return:")],
+           ]
+       )
+       await message.answer("Расширенные выводы Hogan:", reply_markup=builder)
+   else:
+       return_keyboard = InlineKeyboardMarkup(
+           inline_keyboard=[[InlineKeyboardButton(text="↩️ Вернуться в меню", callback_data="menu:return:")]]
+       )
+       await message.answer(" ", reply_markup=return_keyboard)
+   ```
+3) Если были удалены, вернуть импорт `InlineKeyboardButton, InlineKeyboardMarkup` (уже есть), и `build_hogan_results_keyboard` в импортах из `bot.handlers.hogan`.
+4) Перед блоком добавить создание клавиатуры:
+   ```
+   keyboard = build_hogan_results_keyboard(ordered_scales)
+   ```
+   (после `radar_scales = _order_hogan_for_radar(...)`).
+5) Сохранить файл, запустить `read_lints` или линтер, затем перезапустить сервис (`systemctl restart psybot`) после деплоя.
+

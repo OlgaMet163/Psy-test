@@ -1,3 +1,5 @@
+import asyncio
+import datetime as dt
 import logging
 from pathlib import Path
 
@@ -16,16 +18,11 @@ from aiogram.types import (
 from bot import dependencies
 from bot.handlers.hexaco import format_results_message, start_hexaco
 from bot.handlers.svs import format_group_results, format_value_results, start_svs
-from bot.handlers.hogan import (
-    build_hogan_results_chunks,
-    build_hogan_results_keyboard,
-    start_hogan,
-)
+from bot.handlers.hogan import build_hogan_results_chunks, start_hogan
 from bot.utils.text import build_progress_bar
 from bot.keyboards.common import build_main_inline_menu
 import re
 from typing import Dict, List, Sequence, Optional
-import re
 from bot.services.hogan import HoganReport, SCALE_DEFINITIONS
 from bot.services.hexaco import HexacoResult
 from bot.services.svs import SvsResult
@@ -47,6 +44,8 @@ TEST_SVS = "start:test:svs"
 TEST_HOGAN = "start:test:hogan"
 TEST_VIEW_PARTICIPANT = "start:test:view_participant"
 MENU_PREFIX = "menu:"
+STAFF_FIND_ANOTHER = "staff:find_another"
+STAFF_RETURN_MENU = "staff:return_menu"
 
 
 class StartStates(StatesGroup):
@@ -56,6 +55,8 @@ class StartStates(StatesGroup):
     waiting_participant_email = State()
     waiting_participant_lookup = State()
     choosing_test = State()
+    admin_waiting_password = State()
+    admin_active = State()
 
 
 WELCOME_TEXT = (
@@ -92,6 +93,9 @@ SVS_RESULTS_COMMANDS = {
 }
 RESET_COMMANDS = {"/reset", "/cancel", "reset", "cancel", "сброс"}
 TEAM_SWITCH_COMMANDS = {"teamswitch"}
+ADMIN_PASSWORD = "1337"
+ADMIN_STATS = "admin:stats"
+ADMIN_EXPORT = "admin:export"
 HEXACO_ORDER = (
     "honesty_humility",
     "neurotism",
@@ -105,8 +109,15 @@ SVS_VALUE_ORDER = ("SD", "ST", "HE", "AC", "PO", "SEC", "CO", "TR", "BE", "UN")
 DARK_TRIAD_ORDER = ("dt_machiavellianism", "dt_narcissism", "dt_psychopathy")
 
 
+async def _track_activity(user_id: int) -> None:
+    storage = dependencies.storage_gateway
+    if storage:
+        await storage.record_user_activity(user_id)
+
+
 @start_router.message(CommandStart())
 async def handle_start(message: Message, state: FSMContext) -> None:
+    await _track_activity(message.from_user.id)
     # гарантированно убираем старую клавиатуру до любых ответов
     await message.answer("…", reply_markup=ReplyKeyboardRemove())
     current_state = await state.get_state()
@@ -124,6 +135,7 @@ async def handle_start(message: Message, state: FSMContext) -> None:
     lambda m: m.text and m.text.strip().lower() in TEAM_SWITCH_COMMANDS
 )
 async def handle_team_switch(message: Message, state: FSMContext) -> None:
+    await _track_activity(message.from_user.id)
     await state.clear()
     await message.answer("…", reply_markup=ReplyKeyboardRemove())
     await state.set_state(StartStates.choosing_test)
@@ -143,8 +155,171 @@ async def handle_team_switch(message: Message, state: FSMContext) -> None:
     await state.update_data(test_menu_message_id=menu_msg.message_id)
 
 
+@start_router.message(Command("oracleadmin"))
+@start_router.message(lambda m: m.text and m.text.strip().lower() == "/oracleadmin")
+async def handle_oracle_admin(message: Message, state: FSMContext) -> None:
+    await _track_activity(message.from_user.id)
+    current_state = await state.get_state()
+    # Если уже в админ-режиме, обновим таймер и покажем панель.
+    if current_state == StartStates.admin_active:
+        session_token = _make_admin_token(message)
+        await state.update_data(admin_session_token=session_token)
+        await _send_admin_panel(message)
+        asyncio.create_task(
+            _schedule_admin_timeout(
+                message.bot, message.from_user.id, state, session_token
+            )
+        )
+        return
+
+    prev_state = current_state
+    prev_data = await state.get_data()
+    await state.set_state(StartStates.admin_waiting_password)
+    await state.set_data(
+        {
+            "admin_prev_state": prev_state,
+            "admin_prev_data": prev_data,
+        }
+    )
+    await message.answer(
+        "Введите пароль для доступа к админ-панели:", reply_markup=ReplyKeyboardRemove()
+    )
+
+
+@start_router.message(StartStates.admin_waiting_password)
+async def handle_admin_password(message: Message, state: FSMContext) -> None:
+    await _track_activity(message.from_user.id)
+    if (message.text or "").strip() != ADMIN_PASSWORD:
+        await message.answer("Пароль неверный. Попробуйте снова.")
+        return
+    await _activate_admin_session(message, state)
+
+
+@start_router.callback_query(
+    StartStates.admin_active, F.data.startswith("admin:")
+)
+async def handle_admin_actions(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
+    action = callback.data
+    if action == ADMIN_STATS:
+        await _send_admin_stats(callback)
+    elif action == ADMIN_EXPORT:
+        await _send_admin_export(callback)
+    else:
+        await callback.answer()
+        return
+    await callback.answer()
+
+
+def _make_admin_token(message: Message) -> str:
+    return f"{message.message_id}-{int(dt.datetime.now(dt.timezone.utc).timestamp())}"
+
+
+async def _activate_admin_session(message: Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    prev_state = data.get("admin_prev_state")
+    prev_data = data.get("admin_prev_data") or {}
+    session_token = _make_admin_token(message)
+    await state.set_state(StartStates.admin_active)
+    await state.set_data(
+        {
+            "admin_prev_state": prev_state,
+            "admin_prev_data": prev_data,
+            "admin_session_token": session_token,
+        }
+    )
+    await _send_admin_panel(message)
+    asyncio.create_task(
+        _schedule_admin_timeout(
+            message.bot, message.from_user.id, state, session_token
+        )
+    )
+
+
+async def _send_admin_panel(message: Message) -> None:
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Статистика", callback_data=ADMIN_STATS)],
+            [InlineKeyboardButton(text="Выгрузка", callback_data=ADMIN_EXPORT)],
+        ]
+    )
+    await message.answer("Админ-панель:", reply_markup=keyboard)
+
+
+async def _schedule_admin_timeout(bot, user_id: int, state: FSMContext, token: str) -> None:
+    try:
+        await asyncio.sleep(600)
+        data = await state.get_data()
+        if data.get("admin_session_token") != token:
+            return
+        await _restore_previous_state(state)
+        await bot.send_message(user_id, "Админ-сессия завершена.")
+    except Exception:
+        logging.exception("Failed to close admin session")
+
+
+async def _restore_previous_state(state: FSMContext) -> None:
+    data = await state.get_data()
+    prev_state = data.get("admin_prev_state")
+    prev_data = data.get("admin_prev_data") or {}
+    await state.set_data(prev_data)
+    if prev_state:
+        await state.set_state(prev_state)
+    else:
+        await state.clear()
+
+
+async def _send_admin_stats(callback: CallbackQuery) -> None:
+    storage = dependencies.storage_gateway
+    if not storage:
+        await callback.message.answer("Хранилище недоступно, попробуйте позже.")
+        return
+    stats = await storage.fetch_admin_stats()
+    avg_bs = stats.get("avg_bullshit")
+    bs_text = f"{avg_bs}%" if avg_bs is not None else "—"
+    text = (
+        "<b>Статистика</b>\n"
+        f"Пользователей: {stats.get('total_users', 0)}\n"
+        f"Сегодня: {stats.get('today_users', 0)}\n"
+        f"За неделю: {stats.get('week_users', 0)}\n"
+        f"Прошли HEXACO: {stats.get('finished_hexaco', 0)}\n"
+        f"Прошли SVS: {stats.get('finished_svs', 0)}\n"
+        f"Прошли Hogan: {stats.get('finished_hogan', 0)}\n"
+        f"Bullshit: {bs_text}"
+    )
+    await callback.message.answer(text)
+
+
+async def _send_admin_export(callback: CallbackQuery) -> None:
+    storage = dependencies.storage_gateway
+    if not storage:
+        await callback.message.answer("Хранилище недоступно, попробуйте позже.")
+        return
+    base_dir = Path(__file__).resolve().parents[2]
+    exports_dir = base_dir / "exports"
+    filename = f"users_{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+    export_path = exports_dir / filename
+    try:
+        export_path = await storage.export_users_csv(export_path)
+    except Exception:
+        logging.exception("Failed to build export")
+        await callback.message.answer("Не удалось сформировать выгрузку, попробуйте позже.")
+        return
+    try:
+        await callback.message.answer_document(
+            document=FSInputFile(export_path),
+            caption="Готовая выгрузка пользователей.",
+        )
+    finally:
+        try:
+            export_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
 @start_router.callback_query(F.data.startswith(MENU_PREFIX))
 async def handle_menu(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
     parts = callback.data.split(":")
     if len(parts) < 3:
         await callback.answer()
@@ -223,6 +398,7 @@ async def handle_menu(callback: CallbackQuery, state: FSMContext) -> None:
 
 @start_router.callback_query(StartStates.awaiting_begin, F.data == START_CALLBACK)
 async def handle_begin(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
     await state.set_state(StartStates.choosing_role)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -245,6 +421,7 @@ async def handle_begin(callback: CallbackQuery, state: FSMContext) -> None:
 
 @start_router.callback_query(StartStates.choosing_role, F.data == ROLE_PARTICIPANT)
 async def handle_participant(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
     data = await state.get_data()
     role_msg_id = data.get("role_message_id")
     if role_msg_id:
@@ -264,6 +441,7 @@ async def handle_participant(callback: CallbackQuery, state: FSMContext) -> None
 
 @start_router.callback_query(StartStates.choosing_role, F.data == ROLE_STAFF)
 async def handle_staff(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
     data = await state.get_data()
     role_msg_id = data.get("role_message_id")
     if role_msg_id:
@@ -280,6 +458,7 @@ async def handle_staff(callback: CallbackQuery, state: FSMContext) -> None:
 
 @start_router.message(StartStates.waiting_email)
 async def handle_staff_email(message: Message, state: FSMContext) -> None:
+    await _track_activity(message.from_user.id)
     email = (message.text or "").strip().lower()
     if "fizikl.org" not in email:
         await message.answer(
@@ -299,6 +478,7 @@ async def handle_staff_email(message: Message, state: FSMContext) -> None:
 
 @start_router.message(StartStates.waiting_participant_email)
 async def handle_participant_email(message: Message, state: FSMContext) -> None:
+    await _track_activity(message.from_user.id)
     email = (message.text or "").strip()
     if not _is_email_valid(email):
         await message.answer("Некорректный адрес почты, попробуйте снова.")
@@ -322,6 +502,7 @@ async def _delete_msg(bot, chat_id: int, message_id: int | None) -> None:
 
 @start_router.callback_query(StartStates.choosing_test, F.data == TEST_HEXACO)
 async def handle_test_hexaco(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
     data = await state.get_data()
     await _delete_msg(
         callback.bot, callback.from_user.id, data.get("test_menu_message_id")
@@ -333,6 +514,7 @@ async def handle_test_hexaco(callback: CallbackQuery, state: FSMContext) -> None
 
 @start_router.callback_query(StartStates.choosing_test, F.data == TEST_SVS)
 async def handle_test_svs(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
     data = await state.get_data()
     await _delete_msg(
         callback.bot, callback.from_user.id, data.get("test_menu_message_id")
@@ -344,6 +526,7 @@ async def handle_test_svs(callback: CallbackQuery, state: FSMContext) -> None:
 
 @start_router.callback_query(StartStates.choosing_test, F.data == TEST_HOGAN)
 async def handle_test_hogan(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
     data = await state.get_data()
     await _delete_msg(
         callback.bot, callback.from_user.id, data.get("test_menu_message_id")
@@ -355,6 +538,7 @@ async def handle_test_hogan(callback: CallbackQuery, state: FSMContext) -> None:
 
 @start_router.callback_query(StartStates.choosing_test, F.data == TEST_VIEW_PARTICIPANT)
 async def handle_view_participant(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
     data = await state.get_data()
     await _delete_msg(
         callback.bot, callback.from_user.id, data.get("test_menu_message_id")
@@ -366,6 +550,7 @@ async def handle_view_participant(callback: CallbackQuery, state: FSMContext) ->
 
 @start_router.message(StartStates.waiting_participant_lookup)
 async def handle_view_participant_email(message: Message, state: FSMContext) -> None:
+    await _track_activity(message.from_user.id)
     email = (message.text or "").strip()
     if not _is_email_valid(email):
         await message.answer("Некорректный адрес почты, попробуйте снова.")
@@ -373,40 +558,16 @@ async def handle_view_participant_email(message: Message, state: FSMContext) -> 
     user_id = await _find_user_by_email(email)
     if not user_id:
         await message.answer(
-            "Не нашли участника с такой почтой. Проверь адрес или попроси участника отправить свою почту заново."
+            "Не нашли участника с такой почтой. Проверь адрес или попроси участника отправить свою почту заново.",
+            reply_markup=_build_staff_post_actions(),
         )
         return
     storage = dependencies.storage_gateway
     if not storage:
-        await message.answer("Хранилище недоступно, попробуйте позже.")
+        await message.answer("Хранилище недоступно, попробуйте позже.", reply_markup=_build_staff_post_actions())
         return
-    # HEXACO (Big Five, 6 черт) — если есть
-    await handle_show_hexaco_results(
-        message, user_id=user_id, include_hh=True  # type: ignore[arg-type]
-    )
-    await _send_dark_triad_results(message, user_id=user_id)
-
-    # Hogan — если есть
-    report = await storage.fetch_latest_hogan_report(user_id)
-    if report and report.scales:
-        im_message = _build_im_message(report)
-        if im_message:
-            await message.answer(im_message)
-
-        chunks = build_hogan_results_chunks(report)
-        chunks = _drop_im_lines(chunks)
-        for chunk in chunks:
-            await message.answer(chunk)
-
-        coach_sections = await _build_coach_sections(report)
-        for section in coach_sections:
-            await message.answer(section)
-    else:
-        await message.answer("Результатов Hogan пока нет.")
-
+    await _send_staff_results(message, user_id=user_id)
     await state.set_state(StartStates.choosing_test)
-    menu = await _send_test_menu(message, participant=False, prefix="Выбери действие:")
-    await state.update_data(test_menu_message_id=menu.message_id)
 
 
 @start_router.message(lambda m: m.text and m.text.lower() in HEXACO_RESULTS_COMMANDS)
@@ -416,6 +577,7 @@ async def handle_show_hexaco_results(
     email: Optional[str] = None,
     include_hh: bool = False,
 ) -> None:
+    await _track_activity(message.from_user.id)
     storage = dependencies.storage_gateway
     if not storage:
         await message.answer("Хранилище недоступно, попробуйте позже.")
@@ -464,6 +626,7 @@ async def handle_show_hexaco_results(
 async def handle_show_hogan_results(
     message: Message, user_id: Optional[int] = None, email: Optional[str] = None
 ) -> None:
+    await _track_activity(message.from_user.id)
     storage = dependencies.storage_gateway
     if not storage:
         await message.answer("Хранилище недоступно, попробуйте позже.")
@@ -472,10 +635,6 @@ async def handle_show_hogan_results(
     if not target_user:
         await message.answer("Результатов Hogan пока нет. Сначала пройдите тест.")
         return
-    hexaco_ready = await _has_results(target_user, "HEXACO")
-    hogan_ready = await _has_results(target_user, "HOGAN")
-    svs_ready = await _has_results(target_user, "SVS")
-
     report = await storage.fetch_latest_hogan_report(target_user)
     if not report or not report.scales:
         await message.answer(
@@ -489,7 +648,6 @@ async def handle_show_hogan_results(
         scales=ordered_scales, impression_management=report.impression_management
     )
     radar_scales = _order_hogan_for_radar(report.scales)
-    keyboard = build_hogan_results_keyboard(ordered_scales)
     chunks = build_hogan_results_chunks(ordered_report)
     chunks = _drop_im_lines(chunks)
     radar_path = None
@@ -508,30 +666,6 @@ async def handle_show_hogan_results(
     for chunk in chunks:
         await message.answer(chunk)
 
-    if keyboard:
-        builder = InlineKeyboardMarkup(
-            inline_keyboard=[
-                *keyboard.inline_keyboard,
-                [
-                    InlineKeyboardButton(
-                        text="↩️ Вернуться в меню",
-                        callback_data="menu:return:",
-                    )
-                ],
-            ]
-        )
-        await message.answer("Расширенные выводы Hogan:", reply_markup=builder)
-    else:
-        return_keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="↩️ Вернуться в меню", callback_data="menu:return:"
-                    )
-                ]
-            ]
-        )
-        await message.answer(" ", reply_markup=return_keyboard)
     if radar_path:
         try:
             radar_path.unlink(missing_ok=True)
@@ -543,6 +677,7 @@ async def handle_show_hogan_results(
 @start_router.message(Command("reset"))
 @start_router.message(Command("cancel"))
 async def handle_reset(message: Message, state: FSMContext) -> None:
+    await _track_activity(message.from_user.id)
     storage = dependencies.storage_gateway
     if storage:
         try:
@@ -561,6 +696,7 @@ async def handle_reset(message: Message, state: FSMContext) -> None:
 async def handle_show_svs_results(
     message: Message, user_id: Optional[int] = None, email: Optional[str] = None
 ) -> None:
+    await _track_activity(message.from_user.id)
     storage = dependencies.storage_gateway
     if not storage:
         await message.answer("Хранилище недоступно, попробуйте позже.")
@@ -659,6 +795,32 @@ def _format_dark_triad_results(results: list[HexacoResult]) -> str:
     return "\n\n".join(lines)
 
 
+def _build_staff_post_actions() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🔍 Найти другого участника", callback_data=STAFF_FIND_ANOTHER)],
+            [InlineKeyboardButton(text="↩️ Вернуться в меню", callback_data=STAFF_RETURN_MENU)],
+        ]
+    )
+
+
+@start_router.callback_query(F.data == STAFF_FIND_ANOTHER)
+async def handle_staff_find_another(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
+    await state.set_state(StartStates.waiting_participant_lookup)
+    await callback.message.answer("Введи почту участника:")
+    await callback.answer()
+
+
+@start_router.callback_query(F.data == STAFF_RETURN_MENU)
+async def handle_staff_return_menu(callback: CallbackQuery, state: FSMContext) -> None:
+    await _track_activity(callback.from_user.id)
+    await state.set_state(StartStates.choosing_test)
+    menu = await _send_test_menu(callback.message, participant=False, prefix="Выбери действие:")
+    await state.update_data(test_menu_message_id=menu.message_id)
+    await callback.answer()
+
+
 def _order_hogan_for_radar(scales) -> list:
     order_index = {scale_id: idx for idx, scale_id in enumerate(HOGAN_ORDER)}
     return sorted(
@@ -708,6 +870,96 @@ async def _send_dark_triad_results(
             radar_path.unlink(missing_ok=True)
         except Exception:
             pass
+
+
+async def _send_staff_results(message: Message, user_id: int) -> None:
+    storage = dependencies.storage_gateway
+    if not storage:
+        await message.answer("Хранилище недоступно, попробуйте позже.", reply_markup=_build_staff_post_actions())
+        return
+
+    diagrams: list[tuple[str, FSInputFile, str]] = []
+    texts: list[tuple[str, str]] = []
+
+    # HEXACO / Big Five
+    hexaco_results = await storage.fetch_latest_hexaco_results(user_id)
+    public_results = sorted(
+        [r for r in hexaco_results if r.visibility == "public"],
+        key=lambda item: item.percent,
+        reverse=True,
+    )
+    if public_results:
+        radar_hexaco = None
+        try:
+            radar_hexaco = build_hexaco_radar(_order_hexaco_for_radar(public_results, include_hh=True))
+        except Exception as exc:  # pragma: no cover
+            logging.exception("Failed to build Big Five radar: %s", exc)
+        if radar_hexaco:
+            diagrams.append(("hexaco", FSInputFile(radar_hexaco), "<b>Диаграмма Big Five</b>"))
+        texts.append(("hexaco", format_results_message(public_results, include_hh=True)))
+
+        triad = _filter_dark_triad(hexaco_results)
+        if triad:
+            radar_tri = None
+            try:
+                radar_tri = build_dark_triad_radar(_order_dark_triad_for_radar(triad))
+            except Exception as exc:  # pragma: no cover
+                logging.exception("Failed to build Dark Triad radar: %s", exc)
+            if radar_tri:
+                diagrams.append(("triad", FSInputFile(radar_tri), "<b>Тёмная триада</b>"))
+            texts.append(("triad", _format_dark_triad_results(triad)))
+
+    # Hogan
+    report = await storage.fetch_latest_hogan_report(user_id)
+    if report and report.scales:
+        radar_hogan = None
+        try:
+            radar_hogan = build_hogan_radar(_order_hogan_for_radar(report.scales))
+        except Exception as exc:  # pragma: no cover
+            logging.exception("Failed to build Hogan radar: %s", exc)
+        if radar_hogan:
+            diagrams.append(("hogan", FSInputFile(radar_hogan), "<b>Диаграмма Hogan DSUSI-SF</b>"))
+
+        chunks = build_hogan_results_chunks(report)
+        chunks = _drop_im_lines(chunks)
+        im_message = _build_im_message(report)
+        hogan_text = []
+        if im_message:
+            hogan_text.append(im_message)
+        hogan_text.extend(chunks)
+        coach_sections = await _build_coach_sections(report)
+        hogan_text.extend(coach_sections)
+        texts.append(("hogan", "\n\n".join(hogan_text) if hogan_text else "Результатов Hogan пока нет."))
+
+    # Определяем режим вывода
+    tests_count = 0
+    if any(key == "hexaco" for key, _, _ in diagrams) or any(key == "hexaco" for key, _ in texts):
+        tests_count += 1
+    if any(key == "hogan" for key, _, _ in diagrams) or any(key == "hogan" for key, _ in texts):
+        tests_count += 1
+
+    # Правила выдачи
+    if tests_count <= 1:
+        # выводим диаграммы того теста, затем тексты
+        for _, file, caption in diagrams:
+            await message.answer_photo(file, caption=caption)
+        for _, text in texts:
+            await message.answer(text)
+    else:
+        # сначала все диаграммы, затем все тексты
+        for _, file, caption in diagrams:
+            await message.answer_photo(file, caption=caption)
+        for _, text in texts:
+            await message.answer(text)
+
+    # очистка временных файлов диаграмм
+    for key, file, _ in diagrams:
+        try:
+            Path(file.path).unlink(missing_ok=True)
+        except Exception:
+            pass
+
+    await message.answer("Готово. Что дальше?", reply_markup=_build_staff_post_actions())
 
 
 async def _send_test_menu(
