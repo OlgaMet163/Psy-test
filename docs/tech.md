@@ -28,6 +28,31 @@
 - Минимум PII: Telegram ID, без внешних идентификаторов.
 - Пользователь может удалить свои данные `/reset`.
 
+## Деплой / операции (факт)
+- Окружение: Ubuntu 24.04, пользователь `deploy`, проект в `/home/deploy/bots/Psy-test`, Python 3.12, SQLite `data/bot.db`.
+- Запуск: venv + systemd (`/etc/systemd/system/psybot.service`):
+  ```
+  [Unit]
+  Description=Psy-test Telegram bot
+  After=network.target
+
+  [Service]
+  Type=simple
+  WorkingDirectory=/home/deploy/bots/Psy-test
+  ExecStart=/home/deploy/bots/Psy-test/.venv/bin/python -m bot.main
+  User=deploy
+  Restart=always
+  Environment=PYTHONUNBUFFERED=1
+
+  [Install]
+  WantedBy=multi-user.target
+  ```
+  Команды: `systemctl daemon-reload/enable/start/stop/status psybot`, логи `journalctl -u psybot -f`.
+- Конфиг: `.env` из `config/env.template`, обязательный `TELEGRAM_BOT_TOKEN`; при необходимости `DATA_DIR/DATABASE_PATH`.
+- SSH keepalive от обрывов: в `sshd_config` включены `ClientAliveInterval 60`, `ClientAliveCountMax 3`, `TCPKeepAlive yes`; на клиенте — `ServerAliveInterval 60`, `ServerAliveCountMax 3` в `~/.ssh/config`.
+- Для работы в долгих сессиях — `tmux` (`tmux new -s work`, `tmux attach -t work`).
+- Бэкап: копировать `data/bot.db` и `.env` (например, `tar czf backup.tgz data .env`).
+
 ## Кодстайл
 - Максимальная длина строки кода — 88 символов (black совместим).
 - В IDE/Problems длина строки считается нарушением только при превышении 88
