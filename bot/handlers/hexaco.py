@@ -85,7 +85,7 @@ async def start_hexaco(message: Message, state: FSMContext) -> None:
     await state.update_data(
         index=0, answers={}, order=order, intro_message_id=intro.message_id
     )
-    await _send_question(message, engine, order, 0)
+    await _send_question(message, engine, order, 0, {})
 
 
 @hexaco_router.callback_query(
@@ -102,7 +102,15 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
         return
     statement = engine.get_statement(order[index])
 
-    raw_value = int(callback.data.split(":")[1])
+    payload = callback.data.split(":")[1] if ":" in callback.data else ""
+    if payload == "back":
+        await _go_prev_question(callback, state, engine)
+        return
+    try:
+        raw_value = int(payload)
+    except ValueError:
+        await callback.answer()
+        return
     answers[statement.id] = raw_value
 
     await state.update_data(index=index + 1, answers=answers)
@@ -126,18 +134,45 @@ async def handle_answer(callback: CallbackQuery, state: FSMContext) -> None:
         await _finish(callback, state, answers, engine)
         return
 
-    await _send_question(callback.message, engine, order, index + 1)
+    await _send_question(callback.message, engine, order, index + 1, answers)
 
 
 async def _send_question(
-    message: Message, engine, order: List[int], index: int
+    message: Message,
+    engine,
+    order: List[int],
+    index: int,
+    answers: Dict[int, int] | None = None,
 ) -> None:
     statement = engine.get_statement(order[index])
     total = len(order)
+    selected = (answers or {}).get(statement.id)
     await message.answer(
         f"<b>Вопрос {index + 1}/{total}</b>\n\n{statement.text}",
-        reply_markup=build_hexaco_keyboard(CALLBACK_PREFIX, statement.id),
+        reply_markup=build_hexaco_keyboard(
+            CALLBACK_PREFIX, statement.id, selected_value=selected, add_back=True
+        ),
     )
+
+
+async def _go_prev_question(
+    callback: CallbackQuery, state: FSMContext, engine
+) -> None:
+    state_data = await state.get_data()
+    answers: Dict[int, int] = state_data.get("answers", {})
+    order: List[int] = state_data.get("order") or list(range(engine.total_questions()))
+    if not order:
+        await callback.answer("Тест недоступен, попробуйте позже.", show_alert=True)
+        return
+    index = state_data.get("index", 0)
+    new_index = max(0, min(len(order) - 1, index - 1))
+    await state.update_data(index=new_index, answers=answers, order=order)
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    await _send_question(callback.message, engine, order, new_index, answers)
+    await callback.answer()
 
 
 async def _finish(

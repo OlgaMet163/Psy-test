@@ -82,6 +82,14 @@ class StorageGateway:
         await self.init()
         timestamp = timestamp or dt.datetime.now(dt.timezone.utc)
         async with aiosqlite.connect(self.db_path) as db:
+            # храним только последний ответ на утверждение для пользователя/теста
+            await db.execute(
+                """
+                DELETE FROM hexaco_answers
+                WHERE user_id = ? AND test_name = ? AND statement_id = ?
+                """,
+                (user_id, test_name, statement_id),
+            )
             await db.execute(
                 """
                 INSERT INTO hexaco_answers (created_at, user_id, test_name, statement_id, raw_value, label)

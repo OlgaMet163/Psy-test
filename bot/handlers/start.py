@@ -380,31 +380,30 @@ async def handle_view_participant_email(message: Message, state: FSMContext) -> 
     if not storage:
         await message.answer("Хранилище недоступно, попробуйте позже.")
         return
-    report = await storage.fetch_latest_hogan_report(user_id)
-    if not report or not report.scales:
-        await message.answer("Для этой почты нет результатов Hogan.")
-        return
-
-    # Базовые результаты Hogan (как у участника, без радаров и без расширенных кнопок)
-    im_message = _build_im_message(report)
-    if im_message:
-        await message.answer(im_message)
-
-    chunks = build_hogan_results_chunks(report)
-    chunks = _drop_im_lines(chunks)
-    for chunk in chunks:
-        await message.answer(chunk)
-
-    # Вывод «Кураторам» блоками
-    coach_sections = await _build_coach_sections(report)
-    for section in coach_sections:
-        await message.answer(section)
-
-    # Полный Big Five (6 черт) для сотрудника при поиске участника
+    # HEXACO (Big Five, 6 черт) — если есть
     await handle_show_hexaco_results(
         message, user_id=user_id, include_hh=True  # type: ignore[arg-type]
     )
     await _send_dark_triad_results(message, user_id=user_id)
+
+    # Hogan — если есть
+    report = await storage.fetch_latest_hogan_report(user_id)
+    if report and report.scales:
+        im_message = _build_im_message(report)
+        if im_message:
+            await message.answer(im_message)
+
+        chunks = build_hogan_results_chunks(report)
+        chunks = _drop_im_lines(chunks)
+        for chunk in chunks:
+            await message.answer(chunk)
+
+        coach_sections = await _build_coach_sections(report)
+        for section in coach_sections:
+            await message.answer(section)
+    else:
+        await message.answer("Результатов Hogan пока нет.")
+
     await state.set_state(StartStates.choosing_test)
     menu = await _send_test_menu(message, participant=False, prefix="Выбери действие:")
     await state.update_data(test_menu_message_id=menu.message_id)

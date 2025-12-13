@@ -163,9 +163,20 @@ ATLAS_DOMAIN_LABELS = {key: title for key, title in ATLAS_DOMAINS}
 
 
 def build_hexaco_keyboard(
-    prefix: str, statement_id: int | None = None
+    prefix: str,
+    statement_id: int | None = None,
+    selected_value: int | None = None,
+    add_back: bool = False,
 ) -> InlineKeyboardMarkup:
-    return _build_answer_keyboard(prefix, _get_hexaco_options(statement_id))
+    options = _get_hexaco_options(statement_id)
+    builder = InlineKeyboardBuilder()
+    for value, label in options:
+        text = f"✅ {label}" if selected_value is not None and value == selected_value else label
+        builder.button(text=text, callback_data=f"{prefix}:{value}")
+    if add_back:
+        builder.button(text="↩️ Назад", callback_data=f"{prefix}:back")
+    builder.adjust(1)
+    return builder.as_markup()
 
 
 def get_hexaco_label(statement_id: int | None, value: int) -> str:
