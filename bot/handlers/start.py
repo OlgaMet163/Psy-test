@@ -109,15 +109,15 @@ SVS_VALUE_ORDER = ("SD", "ST", "HE", "AC", "PO", "SEC", "CO", "TR", "BE", "UN")
 DARK_TRIAD_ORDER = ("dt_machiavellianism", "dt_narcissism", "dt_psychopathy")
 
 
-async def _track_activity(user_id: int) -> None:
+async def _track_activity(user_id: int, username: str | None = None) -> None:
     storage = dependencies.storage_gateway
     if storage:
-        await storage.record_user_activity(user_id)
+        await storage.record_user_activity(user_id, username=username)
 
 
 @start_router.message(CommandStart())
 async def handle_start(message: Message, state: FSMContext) -> None:
-    await _track_activity(message.from_user.id)
+    await _track_activity(message.from_user.id, message.from_user.username)
     # гарантированно убираем старую клавиатуру до любых ответов
     await message.answer("…", reply_markup=ReplyKeyboardRemove())
     current_state = await state.get_state()
@@ -135,7 +135,7 @@ async def handle_start(message: Message, state: FSMContext) -> None:
     lambda m: m.text and m.text.strip().lower() in TEAM_SWITCH_COMMANDS
 )
 async def handle_team_switch(message: Message, state: FSMContext) -> None:
-    await _track_activity(message.from_user.id)
+    await _track_activity(message.from_user.id, message.from_user.username)
     await state.clear()
     await message.answer("…", reply_markup=ReplyKeyboardRemove())
     await state.set_state(StartStates.choosing_test)
@@ -158,7 +158,7 @@ async def handle_team_switch(message: Message, state: FSMContext) -> None:
 @start_router.message(Command("oracleadmin"))
 @start_router.message(lambda m: m.text and m.text.strip().lower() == "/oracleadmin")
 async def handle_oracle_admin(message: Message, state: FSMContext) -> None:
-    await _track_activity(message.from_user.id)
+    await _track_activity(message.from_user.id, message.from_user.username)
     current_state = await state.get_state()
     # Если уже в админ-режиме, обновим таймер и покажем панель.
     if current_state == StartStates.admin_active:
@@ -188,7 +188,7 @@ async def handle_oracle_admin(message: Message, state: FSMContext) -> None:
 
 @start_router.message(StartStates.admin_waiting_password)
 async def handle_admin_password(message: Message, state: FSMContext) -> None:
-    await _track_activity(message.from_user.id)
+    await _track_activity(message.from_user.id, message.from_user.username)
     if (message.text or "").strip() != ADMIN_PASSWORD:
         await message.answer("Пароль неверный. Попробуйте снова.")
         return
@@ -319,7 +319,7 @@ async def _send_admin_export(callback: CallbackQuery) -> None:
 
 @start_router.callback_query(F.data.startswith(MENU_PREFIX))
 async def handle_menu(callback: CallbackQuery, state: FSMContext) -> None:
-    await _track_activity(callback.from_user.id)
+    await _track_activity(callback.from_user.id, callback.from_user.username)
     parts = callback.data.split(":")
     if len(parts) < 3:
         await callback.answer()
@@ -398,7 +398,7 @@ async def handle_menu(callback: CallbackQuery, state: FSMContext) -> None:
 
 @start_router.callback_query(StartStates.awaiting_begin, F.data == START_CALLBACK)
 async def handle_begin(callback: CallbackQuery, state: FSMContext) -> None:
-    await _track_activity(callback.from_user.id)
+    await _track_activity(callback.from_user.id, callback.from_user.username)
     await state.set_state(StartStates.choosing_role)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -421,7 +421,7 @@ async def handle_begin(callback: CallbackQuery, state: FSMContext) -> None:
 
 @start_router.callback_query(StartStates.choosing_role, F.data == ROLE_PARTICIPANT)
 async def handle_participant(callback: CallbackQuery, state: FSMContext) -> None:
-    await _track_activity(callback.from_user.id)
+    await _track_activity(callback.from_user.id, callback.from_user.username)
     data = await state.get_data()
     role_msg_id = data.get("role_message_id")
     if role_msg_id:
@@ -441,7 +441,7 @@ async def handle_participant(callback: CallbackQuery, state: FSMContext) -> None
 
 @start_router.callback_query(StartStates.choosing_role, F.data == ROLE_STAFF)
 async def handle_staff(callback: CallbackQuery, state: FSMContext) -> None:
-    await _track_activity(callback.from_user.id)
+    await _track_activity(callback.from_user.id, callback.from_user.username)
     data = await state.get_data()
     role_msg_id = data.get("role_message_id")
     if role_msg_id:
@@ -458,7 +458,7 @@ async def handle_staff(callback: CallbackQuery, state: FSMContext) -> None:
 
 @start_router.message(StartStates.waiting_email)
 async def handle_staff_email(message: Message, state: FSMContext) -> None:
-    await _track_activity(message.from_user.id)
+    await _track_activity(message.from_user.id, message.from_user.username)
     email = (message.text or "").strip().lower()
     if "fizikl.org" not in email:
         await message.answer(
@@ -481,7 +481,7 @@ async def handle_staff_email(message: Message, state: FSMContext) -> None:
 
 @start_router.message(StartStates.waiting_participant_email)
 async def handle_participant_email(message: Message, state: FSMContext) -> None:
-    await _track_activity(message.from_user.id)
+    await _track_activity(message.from_user.id, message.from_user.username)
     email = (message.text or "").strip()
     if not _is_email_valid(email):
         await message.answer("Некорректный адрес почты, попробуйте снова.")
@@ -505,7 +505,7 @@ async def _delete_msg(bot, chat_id: int, message_id: int | None) -> None:
 
 @start_router.callback_query(StartStates.choosing_test, F.data == TEST_HEXACO)
 async def handle_test_hexaco(callback: CallbackQuery, state: FSMContext) -> None:
-    await _track_activity(callback.from_user.id)
+    await _track_activity(callback.from_user.id, callback.from_user.username)
     data = await state.get_data()
     await _delete_msg(
         callback.bot, callback.from_user.id, data.get("test_menu_message_id")
@@ -517,7 +517,7 @@ async def handle_test_hexaco(callback: CallbackQuery, state: FSMContext) -> None
 
 @start_router.callback_query(StartStates.choosing_test, F.data == TEST_SVS)
 async def handle_test_svs(callback: CallbackQuery, state: FSMContext) -> None:
-    await _track_activity(callback.from_user.id)
+    await _track_activity(callback.from_user.id, callback.from_user.username)
     data = await state.get_data()
     await _delete_msg(
         callback.bot, callback.from_user.id, data.get("test_menu_message_id")
@@ -529,7 +529,7 @@ async def handle_test_svs(callback: CallbackQuery, state: FSMContext) -> None:
 
 @start_router.callback_query(StartStates.choosing_test, F.data == TEST_HOGAN)
 async def handle_test_hogan(callback: CallbackQuery, state: FSMContext) -> None:
-    await _track_activity(callback.from_user.id)
+    await _track_activity(callback.from_user.id, callback.from_user.username)
     data = await state.get_data()
     await _delete_msg(
         callback.bot, callback.from_user.id, data.get("test_menu_message_id")
@@ -541,7 +541,7 @@ async def handle_test_hogan(callback: CallbackQuery, state: FSMContext) -> None:
 
 @start_router.callback_query(StartStates.choosing_test, F.data == TEST_VIEW_PARTICIPANT)
 async def handle_view_participant(callback: CallbackQuery, state: FSMContext) -> None:
-    await _track_activity(callback.from_user.id)
+    await _track_activity(callback.from_user.id, callback.from_user.username)
     data = await state.get_data()
     await _delete_msg(
         callback.bot, callback.from_user.id, data.get("test_menu_message_id")
@@ -553,7 +553,7 @@ async def handle_view_participant(callback: CallbackQuery, state: FSMContext) ->
 
 @start_router.message(StartStates.waiting_participant_lookup)
 async def handle_view_participant_email(message: Message, state: FSMContext) -> None:
-    await _track_activity(message.from_user.id)
+    await _track_activity(message.from_user.id, message.from_user.username)
     email = (message.text or "").strip()
     if not _is_email_valid(email):
         await message.answer("Некорректный адрес почты, попробуйте снова.")
@@ -580,7 +580,7 @@ async def handle_show_hexaco_results(
     email: Optional[str] = None,
     include_hh: bool = False,
 ) -> None:
-    await _track_activity(message.from_user.id)
+    await _track_activity(message.from_user.id, message.from_user.username)
     storage = dependencies.storage_gateway
     if not storage:
         await message.answer("Хранилище недоступно, попробуйте позже.")
@@ -629,7 +629,7 @@ async def handle_show_hexaco_results(
 async def handle_show_hogan_results(
     message: Message, user_id: Optional[int] = None, email: Optional[str] = None
 ) -> None:
-    await _track_activity(message.from_user.id)
+    await _track_activity(message.from_user.id, message.from_user.username)
     storage = dependencies.storage_gateway
     if not storage:
         await message.answer("Хранилище недоступно, попробуйте позже.")
@@ -680,7 +680,7 @@ async def handle_show_hogan_results(
 @start_router.message(Command("reset"))
 @start_router.message(Command("cancel"))
 async def handle_reset(message: Message, state: FSMContext) -> None:
-    await _track_activity(message.from_user.id)
+    await _track_activity(message.from_user.id, message.from_user.username)
     storage = dependencies.storage_gateway
     if storage:
         try:
@@ -699,7 +699,7 @@ async def handle_reset(message: Message, state: FSMContext) -> None:
 async def handle_show_svs_results(
     message: Message, user_id: Optional[int] = None, email: Optional[str] = None
 ) -> None:
-    await _track_activity(message.from_user.id)
+    await _track_activity(message.from_user.id, message.from_user.username)
     storage = dependencies.storage_gateway
     if not storage:
         await message.answer("Хранилище недоступно, попробуйте позже.")
@@ -970,15 +970,21 @@ async def _send_staff_results(message: Message, user_id: int) -> None:
     if tests_count <= 1:
         # выводим диаграммы того теста, затем тексты
         for _, file, caption in diagrams:
-            await message.answer_photo(file, caption=caption)
+            try:
+                await message.answer_photo(file, caption=caption)
+            except Exception:
+                logging.exception("Failed to send diagram")
         for _, text in texts:
-            await message.answer(text)
+            await _send_chunked_text(message, text)
     else:
         # сначала все диаграммы, затем все тексты
         for _, file, caption in diagrams:
-            await message.answer_photo(file, caption=caption)
+            try:
+                await message.answer_photo(file, caption=caption)
+            except Exception:
+                logging.exception("Failed to send diagram")
         for _, text in texts:
-            await message.answer(text)
+            await _send_chunked_text(message, text)
 
     # очистка временных файлов диаграмм
     for key, file, _ in diagrams:
@@ -988,6 +994,49 @@ async def _send_staff_results(message: Message, user_id: int) -> None:
             pass
 
     await message.answer("Готово. Что дальше?", reply_markup=_build_staff_post_actions())
+
+
+async def _send_chunked_text(message: Message, text: str, limit: int = 3500) -> None:
+    """Безопасная отправка длинных текстов частями."""
+    if not text:
+        return
+    parts = _split_long_text(text, limit=limit)
+    for idx, part in enumerate(parts):
+        try:
+            await message.answer(part)
+        except Exception:
+            logging.exception("Failed to send staff text chunk %s", idx)
+
+
+def _split_long_text(text: str, limit: int = 3500) -> List[str]:
+    if len(text) <= limit:
+        return [text]
+    # Пытаемся резать по абзацам
+    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+    parts: List[str] = []
+    current = ""
+    for paragraph in paragraphs:
+        candidate = paragraph if not current else current + "\n\n" + paragraph
+        if len(candidate) > limit and current:
+            parts.append(current)
+            current = paragraph
+        else:
+            current = candidate
+    if current:
+        parts.append(current)
+    # Если всё равно что-то длинное — режем по символам
+    final_parts: List[str] = []
+    for chunk in parts:
+        if len(chunk) <= limit:
+            final_parts.append(chunk)
+            continue
+        remaining = chunk
+        while len(remaining) > limit:
+            final_parts.append(remaining[:limit])
+            remaining = remaining[limit:]
+        if remaining:
+            final_parts.append(remaining)
+    return final_parts
 
 
 async def _send_test_menu(

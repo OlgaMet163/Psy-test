@@ -73,13 +73,24 @@ class StorageGateway:
                     user_id INTEGER PRIMARY KEY,
                     first_seen TEXT NOT NULL,
                     last_seen TEXT NOT NULL,
-                    undo_count INTEGER NOT NULL DEFAULT 0
+                    undo_count INTEGER NOT NULL DEFAULT 0,
+                    username TEXT
                 )
                 """
             )
             await db.commit()
             await self._backfill_user_stats(db)
+            await self._ensure_user_stats_username(db)
         self._initialized = True
+
+    async def _ensure_user_stats_username(self, db: aiosqlite.Connection) -> None:
+        # Добавляем колонку username, если её ещё нет (обратная совместимость).
+        try:
+            await db.execute("ALTER TABLE user_stats ADD COLUMN username TEXT")
+            await db.commit()
+        except Exception:
+            # колонка уже существует
+            pass
 
     async def _backfill_user_stats(self, db: aiosqlite.Connection) -> None:
         # Заполняем user_stats по историческим данным, если там ещё пусто.
@@ -349,7 +360,10 @@ class StorageGateway:
         return rows
 
     async def record_user_activity(
-        self, user_id: int, timestamp: dt.datetime | None = None
+        self,
+        user_id: int,
+        username: str | None = None,
+        timestamp: dt.datetime | None = None,
     ) -> None:
         """Фиксирует время первого/последнего посещения пользователя."""
         await self.init()
@@ -357,17 +371,22 @@ class StorageGateway:
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
                 """
-                INSERT INTO user_stats (user_id, first_seen, last_seen, undo_count)
-                VALUES (?, ?, ?, 0)
+                INSERT INTO user_stats (user_id, first_seen, last_seen, undo_count, username)
+                VALUES (?, ?, ?, 0, ?)
                 ON CONFLICT(user_id)
-                DO UPDATE SET last_seen=excluded.last_seen
+                DO UPDATE SET
+                    last_seen=excluded.last_seen,
+                    username=COALESCE(excluded.username, user_stats.username)
                 """,
-                (user_id, ts, ts),
+                (user_id, ts, ts, username),
             )
             await db.commit()
 
     async def increment_undo(
-        self, user_id: int, timestamp: dt.datetime | None = None
+        self,
+        user_id: int,
+        timestamp: dt.datetime | None = None,
+        username: str | None = None,
     ) -> None:
         """Увеличивает счётчик нажатий «Назад» и обновляет last_seen."""
         await self.init()
@@ -375,14 +394,15 @@ class StorageGateway:
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
                 """
-                INSERT INTO user_stats (user_id, first_seen, last_seen, undo_count)
-                VALUES (?, ?, ?, 1)
+                INSERT INTO user_stats (user_id, first_seen, last_seen, undo_count, username)
+                VALUES (?, ?, ?, 1, ?)
                 ON CONFLICT(user_id)
                 DO UPDATE SET
                     last_seen=excluded.last_seen,
-                    undo_count=user_stats.undo_count + 1
+                    undo_count=user_stats.undo_count + 1,
+                    username=COALESCE(excluded.username, user_stats.username)
                 """,
-                (user_id, ts, ts),
+                (user_id, ts, ts, username),
             )
             await db.commit()
 
@@ -492,6 +512,7 @@ class StorageGateway:
 
         header = [
             "tg_id",
+            "tg_name",
             "Email",
             "Date",
             "Tests finished",
@@ -506,7 +527,7 @@ class StorageGateway:
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
-                "SELECT user_id, first_seen, undo_count FROM user_stats ORDER BY first_seen"
+                "SELECT user_id, first_seen, undo_count, username FROM user_stats ORDER BY first_seen"
             )
             users = await cursor.fetchall()
 
@@ -518,6 +539,8 @@ class StorageGateway:
                     user_id = row["user_id"]
                     first_seen = row["first_seen"]
                     undo_count = row["undo_count"]
+                    username = row["username"] or ""
+                    tg_name = f"@{username}" if username else ""
                     email = await self._fetch_email_by_user_id(db, user_id)
 
                     hexaco_map = await self._fetch_latest_results_map(
@@ -537,6 +560,7 @@ class StorageGateway:
 
                     row_values: List[Sequence[float | str | int]] = [
                         [user_id],
+                        [tg_name],
                         [email or ""],
                         [first_seen.split("T")[0] if first_seen else ""],
                         [tests_finished],
