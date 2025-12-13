@@ -467,6 +467,9 @@ async def handle_staff_email(message: Message, state: FSMContext) -> None:
         return
 
     user_id = message.from_user.id
+    storage = dependencies.storage_gateway
+    if storage:
+        await storage.save_participant_email(user_id, email)
     await state.set_state(StartStates.choosing_test)
     menu = await _send_test_menu(
         message,
@@ -881,62 +884,87 @@ async def _send_staff_results(message: Message, user_id: int) -> None:
     diagrams: list[tuple[str, FSInputFile, str]] = []
     texts: list[tuple[str, str]] = []
 
-    # HEXACO / Big Five
-    hexaco_results = await storage.fetch_latest_hexaco_results(user_id)
-    public_results = sorted(
-        [r for r in hexaco_results if r.visibility == "public"],
-        key=lambda item: item.percent,
-        reverse=True,
-    )
-    if public_results:
-        radar_hexaco = None
-        try:
-            radar_hexaco = build_hexaco_radar(_order_hexaco_for_radar(public_results, include_hh=True))
-        except Exception as exc:  # pragma: no cover
-            logging.exception("Failed to build Big Five radar: %s", exc)
-        if radar_hexaco:
-            diagrams.append(("hexaco", FSInputFile(radar_hexaco), "<b>Диаграмма Big Five</b>"))
-        texts.append(("hexaco", format_results_message(public_results, include_hh=True)))
+    hexaco_present = False
+    hogan_present = False
 
-        triad = _filter_dark_triad(hexaco_results)
-        if triad:
-            radar_tri = None
+    # HEXACO / Big Five
+    try:
+        hexaco_results = await storage.fetch_latest_hexaco_results(user_id)
+        public_results = sorted(
+            [r for r in hexaco_results if r.visibility == "public"],
+            key=lambda item: item.percent,
+            reverse=True,
+        )
+        if public_results:
+            hexaco_present = True
+            radar_hexaco = None
             try:
-                radar_tri = build_dark_triad_radar(_order_dark_triad_for_radar(triad))
+                radar_hexaco = build_hexaco_radar(
+                    _order_hexaco_for_radar(public_results, include_hh=True)
+                )
             except Exception as exc:  # pragma: no cover
-                logging.exception("Failed to build Dark Triad radar: %s", exc)
-            if radar_tri:
-                diagrams.append(("triad", FSInputFile(radar_tri), "<b>Тёмная триада</b>"))
-            texts.append(("triad", _format_dark_triad_results(triad)))
+                logging.exception("Failed to build Big Five radar: %s", exc)
+            if radar_hexaco:
+                diagrams.append(
+                    ("hexaco", FSInputFile(radar_hexaco), "<b>Диаграмма Big Five</b>")
+                )
+            texts.append(
+                ("hexaco", format_results_message(public_results, include_hh=True))
+            )
+
+            triad = _filter_dark_triad(hexaco_results)
+            if triad:
+                try:
+                    radar_tri = build_dark_triad_radar(
+                        _order_dark_triad_for_radar(triad)
+                    )
+                except Exception as exc:  # pragma: no cover
+                    logging.exception("Failed to build Dark Triad radar: %s", exc)
+                    radar_tri = None
+                if radar_tri:
+                    diagrams.append(
+                        ("triad", FSInputFile(radar_tri), "<b>Тёмная триада</b>")
+                    )
+                texts.append(("triad", _format_dark_triad_results(triad)))
+    except Exception:
+        logging.exception("Failed to build HEXACO staff output for user %s", user_id)
+        texts.append(("hexaco", "Не удалось получить результаты Big Five, попробуйте позже."))
 
     # Hogan
-    report = await storage.fetch_latest_hogan_report(user_id)
-    if report and report.scales:
-        radar_hogan = None
-        try:
-            radar_hogan = build_hogan_radar(_order_hogan_for_radar(report.scales))
-        except Exception as exc:  # pragma: no cover
-            logging.exception("Failed to build Hogan radar: %s", exc)
-        if radar_hogan:
-            diagrams.append(("hogan", FSInputFile(radar_hogan), "<b>Диаграмма Hogan DSUSI-SF</b>"))
+    try:
+        report = await storage.fetch_latest_hogan_report(user_id)
+        if report and report.scales:
+            hogan_present = True
+            radar_hogan = None
+            try:
+                radar_hogan = build_hogan_radar(_order_hogan_for_radar(report.scales))
+            except Exception as exc:  # pragma: no cover
+                logging.exception("Failed to build Hogan radar: %s", exc)
+            if radar_hogan:
+                diagrams.append(
+                    ("hogan", FSInputFile(radar_hogan), "<b>Диаграмма Hogan DSUSI-SF</b>")
+                )
 
-        chunks = build_hogan_results_chunks(report)
-        chunks = _drop_im_lines(chunks)
-        im_message = _build_im_message(report)
-        hogan_text = []
-        if im_message:
-            hogan_text.append(im_message)
-        hogan_text.extend(chunks)
-        coach_sections = await _build_coach_sections(report)
-        hogan_text.extend(coach_sections)
-        texts.append(("hogan", "\n\n".join(hogan_text) if hogan_text else "Результатов Hogan пока нет."))
+            chunks = build_hogan_results_chunks(report)
+            chunks = _drop_im_lines(chunks)
+            im_message = _build_im_message(report)
+            hogan_text = []
+            if im_message:
+                hogan_text.append(im_message)
+            hogan_text.extend(chunks)
+            coach_sections = await _build_coach_sections(report)
+            hogan_text.extend(coach_sections)
+            texts.append(
+                ("hogan", "\n\n".join(hogan_text) if hogan_text else "Результатов Hogan пока нет.")
+            )
+        else:
+            texts.append(("hogan", "Результатов Hogan пока нет."))
+    except Exception:
+        logging.exception("Failed to build Hogan staff output for user %s", user_id)
+        texts.append(("hogan", "Не удалось получить результаты Hogan, попробуйте позже."))
 
     # Определяем режим вывода
-    tests_count = 0
-    if any(key == "hexaco" for key, _, _ in diagrams) or any(key == "hexaco" for key, _ in texts):
-        tests_count += 1
-    if any(key == "hogan" for key, _, _ in diagrams) or any(key == "hogan" for key, _ in texts):
-        tests_count += 1
+    tests_count = int(hexaco_present) + int(hogan_present)
 
     # Правила выдачи
     if tests_count <= 1:

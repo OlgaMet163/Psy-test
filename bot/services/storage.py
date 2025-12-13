@@ -492,6 +492,7 @@ class StorageGateway:
 
         header = [
             "tg_id",
+            "Email",
             "Date",
             "Tests finished",
             *hexaco_domains,
@@ -517,6 +518,7 @@ class StorageGateway:
                     user_id = row["user_id"]
                     first_seen = row["first_seen"]
                     undo_count = row["undo_count"]
+                    email = await self._fetch_email_by_user_id(db, user_id)
 
                     hexaco_map = await self._fetch_latest_results_map(
                         db, user_id, "HEXACO"
@@ -535,6 +537,7 @@ class StorageGateway:
 
                     row_values: List[Sequence[float | str | int]] = [
                         [user_id],
+                        [email or ""],
                         [first_seen.split("T")[0] if first_seen else ""],
                         [tests_finished],
                         [hexaco_map.get(key, "") for key in hexaco_domains],
@@ -573,3 +576,13 @@ class StorageGateway:
         )
         rows = await cursor.fetchall()
         return {domain_id: percent for domain_id, percent in rows}
+
+    async def _fetch_email_by_user_id(
+        self, db: aiosqlite.Connection, user_id: int
+    ) -> Optional[str]:
+        cursor = await db.execute(
+            "SELECT email FROM participant_emails WHERE user_id = ? LIMIT 1",
+            (user_id,),
+        )
+        row = await cursor.fetchone()
+        return row[0] if row else None
